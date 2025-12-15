@@ -1,8 +1,6 @@
-// @ts-nocheck
-import React, { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 
 // --- Components ---
-
 const CompanionSettings = ({ ip, port, onSave }) => {
     const [localIp, setLocalIp] = useState(ip)
     const [localPort, setLocalPort] = useState(port)
@@ -29,7 +27,7 @@ const CompanionSettings = ({ ip, port, onSave }) => {
                         type="text"
                         className="p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-700"
                         value={localIp}
-                        onChange={e => setLocalIp(e.target.value)}
+                        onChange={(e) => setLocalIp(e.target.value)}
                         placeholder="127.0.0.1"
                     />
                 </div>
@@ -39,7 +37,7 @@ const CompanionSettings = ({ ip, port, onSave }) => {
                         type="number"
                         className="p-2 w-24 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-700"
                         value={localPort}
-                        onChange={e => setLocalPort(parseInt(e.target.value) || 0)}
+                        onChange={(e) => setLocalPort(parseInt(e.target.value) || 0)}
                         placeholder="16622"
                     />
                 </div>
@@ -50,7 +48,11 @@ const CompanionSettings = ({ ip, port, onSave }) => {
                     >
                         Save Connection
                     </button>
-                    {status && <span className="text-sm text-green-600 font-medium animate-fade-in">{status}</span>}
+                    {status && (
+                        <span className="text-sm text-green-600 font-medium animate-fade-in">
+                            {status}
+                        </span>
+                    )}
                 </div>
             </div>
         </div>
@@ -62,11 +64,11 @@ const DeviceItem = ({ device, onUpdate, onDelete }) => {
     const [status, setStatus] = useState('')
 
     useEffect(() => {
-        setConfig(prev => ({ ...prev, ...device }))
+        setConfig((prev: any) => ({ ...prev, ...device }))
     }, [device])
 
-    const handleChange = (field, value) => {
-        setConfig(prev => ({ ...prev, [field]: value }))
+    const handleChange = (field: string, value: string | number | boolean) => {
+        setConfig((prev: any) => ({ ...prev, [field]: value }))
     }
 
     const handleSave = async () => {
@@ -78,7 +80,9 @@ const DeviceItem = ({ device, onUpdate, onDelete }) => {
     return (
         <div className="border border-gray-200 p-5 mb-4 rounded-lg bg-gray-50 flex flex-col gap-4 shadow-sm">
             <div className="flex justify-between items-center border-b border-gray-200 pb-3">
-                <span className="font-bold text-gray-700">ID: <span className="font-mono text-gray-600 text-sm">{device.deviceId}</span></span>
+                <span className="font-bold text-gray-700">
+                    ID: <span className="font-mono text-gray-600 text-sm">{device.deviceId}</span>
+                </span>
                 <button
                     className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-colors"
                     onClick={() => onDelete(device.deviceId)}
@@ -94,7 +98,7 @@ const DeviceItem = ({ device, onUpdate, onDelete }) => {
                         type="number"
                         className="p-2 w-20 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                         value={config.columnCount}
-                        onChange={e => handleChange('columnCount', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleChange('columnCount', parseInt(e.target.value) || 0)}
                     />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -103,69 +107,109 @@ const DeviceItem = ({ device, onUpdate, onDelete }) => {
                         type="number"
                         className="p-2 w-20 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                         value={config.rowCount}
-                        onChange={e => handleChange('rowCount', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleChange('rowCount', parseInt(e.target.value) || 0)}
                     />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Bitmap Size</label>
+                    <label className="text-xs font-semibold text-gray-600 uppercase">
+                        Bitmap Size
+                    </label>
                     <input
                         type="number"
                         className="p-2 w-24 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                         value={config.bitmapSize}
-                        onChange={e => handleChange('bitmapSize', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleChange('bitmapSize', parseInt(e.target.value) || 0)}
                     />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-600 uppercase">Bg Color</label>
+                    <label className="text-xs font-semibold text-gray-600 uppercase">
+                        Bg Color
+                    </label>
                     <div className="flex items-center gap-2">
                         <input
                             type="color"
                             className="h-9 w-12 p-0 border-0 rounded cursor-pointer"
                             value={config.backgroundColor || '#000000'}
-                            onChange={e => handleChange('backgroundColor', e.target.value)}
+                            onChange={(e) => handleChange('backgroundColor', e.target.value)}
                         />
-                        <span className="text-xs text-gray-500 font-mono">{config.backgroundColor}</span>
+                        <span className="text-xs text-gray-500 font-mono">
+                            {config.backgroundColor}
+                        </span>
                     </div>
                 </div>
-                <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+                <div className="flex flex-col gap-1 flex-1 min-w-50">
                     <label className="text-xs font-semibold text-gray-600 uppercase flex justify-between">
                         <span>Bg Opacity</span>
                         <span>{Math.round((config.backgroundOpacity ?? 0.5) * 100)}%</span>
                     </label>
                     <input
-                        type="range" min="0" max="1" step="0.05"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500 mt-2"
                         value={config.backgroundOpacity ?? 0.5}
-                        onChange={e => handleChange('backgroundOpacity', parseFloat(e.target.value))}
+                        onChange={(e) =>
+                            handleChange('backgroundOpacity', parseFloat(e.target.value))
+                        }
                     />
                 </div>
             </div>
 
             <div className="flex flex-wrap gap-x-6 gap-y-3 mt-2 p-3 bg-white rounded border border-gray-100">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.alwaysOnTop} onChange={e => handleChange('alwaysOnTop', e.target.checked)} />
+                    <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        checked={config.alwaysOnTop}
+                        onChange={(e) => handleChange('alwaysOnTop', e.target.checked)}
+                    />
                     <span className="text-sm text-gray-700">Always On Top</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.movable} onChange={e => handleChange('movable', e.target.checked)} />
+                    <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        checked={config.movable}
+                        onChange={(e) => handleChange('movable', e.target.checked)}
+                    />
                     <span className="text-sm text-gray-700">Movable</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.disablePress} onChange={e => handleChange('disablePress', e.target.checked)} />
+                    <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        checked={config.disablePress}
+                        onChange={(e) => handleChange('disablePress', e.target.checked)}
+                    />
                     <span className="text-sm text-gray-700">Disable Presses</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.autoHide} onChange={e => handleChange('autoHide', e.target.checked)} />
+                    <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        checked={config.autoHide}
+                        onChange={(e) => handleChange('autoHide', e.target.checked)}
+                    />
                     <span className="text-sm text-gray-700">Auto-Hide</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.hideEmptyKeys} onChange={e => handleChange('hideEmptyKeys', e.target.checked)} />
+                    <input
+                        type="checkbox"
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        checked={config.hideEmptyKeys}
+                        onChange={(e) => handleChange('hideEmptyKeys', e.target.checked)}
+                    />
                     <span className="text-sm text-gray-700">Hide Empty Keys</span>
                 </label>
             </div>
 
             <div className="mt-2 flex justify-end items-center gap-4">
-                {status && <span className="text-sm text-green-600 font-medium animate-fade-in">{status}</span>}
+                {status && (
+                    <span className="text-sm text-green-600 font-medium animate-fade-in">
+                        {status}
+                    </span>
+                )}
                 <button
                     className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded shadow-sm transition-colors font-medium"
                     onClick={handleSave}
@@ -177,8 +221,22 @@ const DeviceItem = ({ device, onUpdate, onDelete }) => {
     )
 }
 
+type Device = {
+    deviceId: string
+    columnCount: number
+    rowCount: number
+    bitmapSize: number
+    backgroundColor?: string
+    backgroundOpacity?: number
+    alwaysOnTop: boolean
+    movable: boolean
+    disablePress: boolean
+    autoHide: boolean
+    hideEmptyKeys: boolean
+}
+
 const Settings = () => {
-    const [devices, setDevices] = useState([])
+    const [devices, setDevices] = useState<Device[]>([])
     const [companionSettings, setCompanionSettings] = useState({ ip: '127.0.0.1', port: 16622 })
     const [loading, setLoading] = useState(true)
 
@@ -187,16 +245,16 @@ const Settings = () => {
         try {
             const [allDevices, settings] = await Promise.all([
                 window.electronAPI.invoke('getAllDevices'),
-                window.electronAPI.invoke('getSettings')
+                window.electronAPI.invoke('getSettings'),
             ])
 
             setDevices(allDevices || [])
             setCompanionSettings({
                 ip: settings.companionIP || '127.0.0.1',
-                port: settings.companionPort || 16622
+                port: settings.companionPort || 16622,
             })
         } catch (err) {
-            console.error("Failed to load settings", err)
+            console.error('Failed to load settings', err)
         } finally {
             setLoading(false)
         }
@@ -230,7 +288,9 @@ const Settings = () => {
 
     return (
         <div className="p-6 max-w-4xl mx-auto font-sans text-gray-800">
-            <h1 className="text-2xl font-bold mb-6 text-gray-900 border-b pb-2 border-gray-200">ScreenDeck Configuration</h1>
+            <h1 className="text-2xl font-bold mb-6 text-gray-900 border-b pb-2 border-gray-200">
+                ScreenDeck Configuration
+            </h1>
 
             <CompanionSettings
                 ip={companionSettings.ip}
@@ -250,7 +310,9 @@ const Settings = () => {
                 </div>
 
                 {loading ? (
-                    <div className="text-center p-8 text-gray-500 animate-pulse">Loading settings...</div>
+                    <div className="text-center p-8 text-gray-500 animate-pulse">
+                        Loading settings...
+                    </div>
                 ) : devices.length === 0 ? (
                     <div className="text-center p-12 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-gray-500">
                         <p className="mb-2 text-lg">No devices configured.</p>
@@ -258,7 +320,7 @@ const Settings = () => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {devices.map(dev => (
+                        {devices.map((dev) => (
                             <DeviceItem
                                 key={dev.deviceId}
                                 device={dev}
