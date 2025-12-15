@@ -2,13 +2,14 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import Store from 'electron-store'
 import ShortUniqueId from 'short-uuid'
 import { defaultSettings } from './defaults'
-import path from 'path'
+import path, { join } from 'path'
 import { createNewDevice, showWindows } from './device'
 import { CompanionSatelliteClient } from './client'
 import { updateTrayMenu } from './tray'
 import { Profile, ProfilesStore } from './types'
 import { showNotification } from './notification'
 import { unregisterAllHotkeys } from './hotkeys'
+import { is } from '@electron-toolkit/utils'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -161,7 +162,7 @@ export function promptForProfileName(): Promise<string | undefined> {
             show: false,
             parent: BrowserWindow.getFocusedWindow() || undefined,
             webPreferences: {
-                preload: path.join(__dirname, 'preload.js'),
+                preload: path.join(__dirname, '../preload/index.js'),
                 contextIsolation: true,
                 nodeIntegration: false,
             },
@@ -174,10 +175,13 @@ export function promptForProfileName(): Promise<string | undefined> {
             })
         }
 
-        // Load the HTML file for the input dialog
-        promptWindow.loadFile(
-            path.join(__dirname, '../public/profilePrompt.html')
-        )
+        // HMR for renderer base on electron-vite cli.
+        // Load the remote URL for development or the local html file for production.
+        if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+            promptWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/profilePrompt`)
+        } else {
+            promptWindow.loadFile(path.join(__dirname, '../renderer/profilePrompt.html'))
+        }
 
         promptWindow.once('ready-to-show', () => {
             promptWindow.show()

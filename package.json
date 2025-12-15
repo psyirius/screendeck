@@ -20,6 +20,9 @@
         "build:linux-amd64": "pnpm build && electron-builder --linux",
         "build:linux-arm64": "pnpm build && electron-builder --linux --arm64"
     },
+    "// ----- COMMENTS ----- //": {
+        "electron-store": "versions >=9.0.0 went pure ESM which is not compatible with CommonJS used in Electron main process."
+    },
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",

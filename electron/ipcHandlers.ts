@@ -12,6 +12,8 @@ import {
     showDeviceLabels,
     resizeWindowForDevice,
 } from './device'
+import { is } from '@electron-toolkit/utils'
+import { join } from 'path'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -181,10 +183,7 @@ export function initializeIpcHandlers() {
     })
 
     ipcMain.handle('openHotkeyPrompt', () => {
-        if (
-            global.hotkeyPromptWindow &&
-            !global.hotkeyPromptWindow.isDestroyed()
-        ) {
+        if (global.hotkeyPromptWindow && !global.hotkeyPromptWindow.isDestroyed()) {
             global.hotkeyPromptWindow.focus()
             return
         }
@@ -201,12 +200,18 @@ export function initializeIpcHandlers() {
             frame: false,
             title: 'Assign Hotkey',
             webPreferences: {
-                preload: path.join(__dirname, 'preload.js'),
+                preload: path.join(__dirname, '../preload/index.js'),
                 contextIsolation: true,
             },
         })
 
-        win.loadFile(path.join(__dirname, '../public/hotkeyPrompt.html'))
+        // HMR for renderer base on electron-vite cli.
+        // Load the remote URL for development or the local html file for production.
+        if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+            win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/hotkeyPrompt`)
+        } else {
+            win.loadFile(path.join(__dirname, '../renderer/hotkeyPrompt.html'))
+        }
 
         //show dev tools
         win.webContents.openDevTools({ mode: 'detach' })

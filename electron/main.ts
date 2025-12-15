@@ -4,6 +4,7 @@ import createTray from './tray'
 import { initializeDeviceIds, createSatellite } from './utils'
 import { createDeviceWindows } from './device'
 import { loadHotkeysFromStore } from './hotkeys'
+import { electronApp, optimizer } from '@electron-toolkit/utils'
 
 // Initialize the Companion Satellite client and device windows
 function init() {
@@ -32,9 +33,19 @@ function init() {
 }
 
 app.whenReady().then(() => {
+    // Set app user model id for windows
+    electronApp.setAppUserModelId('com.josephadams.screendeck')
+
     if (process.platform === 'darwin') {
         app.dock?.hide() // Hide the dock icon on macOS
     }
+
+    // Default open or close DevTools by F12 in development
+    // and ignore CommandOrControl + R in production.
+    // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+    app.on('browser-window-created', (_, window) => {
+        optimizer.watchWindowShortcuts(window)
+    })
 
     init() // Initialize the app, IPC handlers, and device windows
     createTray() // Create the system tray icon

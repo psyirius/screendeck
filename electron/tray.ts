@@ -1,5 +1,4 @@
 import { Tray, Menu, nativeImage, app } from 'electron'
-import * as path from 'path'
 import Store from 'electron-store'
 import createSettingsWindow from './settings'
 import {
@@ -10,15 +9,14 @@ import {
 } from './utils'
 import { ProfilesStore } from './types'
 import { unregisterAllHotkeys } from './hotkeys'
+import trayIcon from '../assets/tray-icon.png?asset'
 
 let tray: Tray | null = null
 const store = new Store()
 
 export default function createTray() {
     // Create the tray icon using nativeImage and resize it to the desired size
-    const image = nativeImage.createFromPath(
-        path.join(__dirname, '../assets/tray-icon.png') // Adjust this path as needed
-    )
+    const image = nativeImage.createFromPath(trayIcon)
     tray = new Tray(image.resize({ width: 16, height: 16 }))
 
     tray.setToolTip('ScreenDeck')
@@ -32,7 +30,7 @@ export default function createTray() {
 
 // Function to update the tray menu based on the window state
 function updateTrayMenu() {
-    if (!tray) {
+    if (!tray || tray.isDestroyed()) {
         console.log('Tray has been destroyed; skipping menu update.')
         return
     }

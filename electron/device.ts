@@ -5,6 +5,7 @@ import ShortUniqueId from 'short-uuid'
 import { defaultSettings, SettingsType } from './defaults'
 import { showDevTools } from './utils'
 import { updateTrayMenu } from './tray'
+import { is } from '@electron-toolkit/utils'
 
 const store = new Store<SettingsType>({ defaults: defaultSettings })
 
@@ -29,20 +30,10 @@ export function createDeviceWindow(deviceId: string) {
     const disablePress = store.get(`device.${deviceId}.disablePress`, false)
     const autoHide = store.get(`device.${deviceId}.autoHide`, false)
     const hideEmptyKeys = store.get(`device.${deviceId}.hideEmptyKeys`, false)
-    const backgroundColor = store.get(
-        `device.${deviceId}.backgroundColor`,
-        '#000000'
-    )
-    const backgroundOpacity = store.get(
-        `device.${deviceId}.backgroundOpacity`,
-        0.5
-    )
+    const backgroundColor = store.get(`device.${deviceId}.backgroundColor`, '#000000')
+    const backgroundOpacity = store.get(`device.${deviceId}.backgroundOpacity`, 0.5)
 
-    const { width, height } = calculateWindowSize(
-        columnCount,
-        rowCount,
-        bitmapSize
-    )
+    const { width, height } = calculateWindowSize(columnCount, rowCount, bitmapSize)
     const primaryDisplay = screen.getPrimaryDisplay()
     const { width: screenWidth } = primaryDisplay.workAreaSize
 
@@ -64,15 +55,21 @@ export function createDeviceWindow(deviceId: string) {
         hasShadow: false,
         title: `ScreenDeck - ${deviceId}`,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, '../preload/index.js'),
             contextIsolation: true, // Enable context isolation for security
             nodeIntegration: false, // Disable nodeIntegration for security
         },
     })
 
-    win.loadFile(path.join(__dirname, '../public/index.html'), {
-        query: { deviceId },
-    })
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+        win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}?deviceId=${deviceId}`)
+    } else {
+        win.loadFile(path.join(__dirname, '../renderer/index.html'), {
+            query: { deviceId },
+        })
+    }
 
     win.webContents.on('did-finish-load', () => {
         win.webContents.send('updateBackground', {

@@ -2,6 +2,8 @@ import { BrowserWindow } from 'electron'
 import * as path from 'path'
 import { showDeviceLabels } from './device'
 import { showDevTools } from './utils'
+import { is } from '@electron-toolkit/utils'
+import { join } from 'path'
 
 let settingsWindow: BrowserWindow | null = null
 
@@ -25,13 +27,19 @@ export default function createSettingsWindow() {
         resizable: false,
         title: 'Settings',
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, '../preload/index.js'),
         },
     })
 
-    settingsWindow.removeMenu();
+    settingsWindow.removeMenu()
 
-    settingsWindow.loadFile(path.join(__dirname, '../public/settings.html'))
+    // HMR for renderer base on electron-vite cli.
+    // Load the remote URL for development or the local html file for production.
+    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+        settingsWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/settings`)
+    } else {
+        settingsWindow.loadFile(path.join(__dirname, '../renderer/settings.html'))
+    }
 
     //show devtools
     if (showDevTools) {
