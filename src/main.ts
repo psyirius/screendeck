@@ -66,7 +66,7 @@ function init() {
 
 app.whenReady().then(() => {
     if (process.platform === 'darwin') {
-        app.dock.hide() // Hide the dock icon on macOS
+        app.dock?.hide() // Hide the dock icon on macOS
     }
 
     init() // Initialize the app, IPC handlers, and device windows

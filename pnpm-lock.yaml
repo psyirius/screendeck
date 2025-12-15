@@ -24,9 +24,6 @@ importers:
       '@electron/notarize':
         specifier: ^2.5.0
         version: 2.5.0
-      '@types/electron':
-        specifier: ^1.6.12
-        version: 1.6.12
       '@types/node':
         specifier: ^22.15.29
         version: 22.19.3
@@ -40,8 +37,8 @@ importers:
         specifier: ^8.0.0
         version: 8.2.2
       electron:
-        specifier: ^33.2.1
-        version: 33.4.11
+        specifier: ^39.2.7
+        version: 39.2.7
       electron-builder:
         specifier: ^25.1.8
         version: 25.1.8(electron-builder-squirrel-windows@25.1.8)
@@ -193,10 +190,6 @@ packages:
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
 
-  '@types/electron@1.6.12':
-    resolution: {integrity: sha512-NIJokDkGv9h+MStCL1IuiL1FOHYVkszoWeNxJtSI5dcEKRGbX83JcVYNAgk019qOQgJkHtz9WdP0CDXvrArrGg==}
-    deprecated: This is a stub types definition. electron provides its own type definitions, so you do not need this installed.
-
   '@types/fs-extra@9.0.13':
     resolution: {integrity: sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==}
 
@@ -208,9 +201,6 @@ packages:
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
-
-  '@types/node@20.19.27':
-    resolution: {integrity: sha512-N2clP5pJhB2YnZJ3PIHFk5RkygRX5WO/5f0WC08tp0wd+sv0rsJk3MqWn3CbNmT2J505a5336jaQj4ph1AdMug==}
 
   '@types/node@22.19.3':
     resolution: {integrity: sha512-1N9SBnWYOJTrNZCdh/yJE+t910Y128BoyY+zBLWhL3r0TYzlTmFdXrPwHL9DyFZmlEXNQQolTZh3KHV31QDhyA==}
@@ -641,8 +631,8 @@ packages:
   electron-store@8.2.0:
     resolution: {integrity: sha512-ukLL5Bevdil6oieAOXz3CMy+OgaItMiVBg701MNlG6W5RaC0AHN7rvlqTCmeb6O7jP0Qa1KKYTE0xV0xbhF4Hw==}
 
-  electron@33.4.11:
-    resolution: {integrity: sha512-xmdAs5QWRkInC7TpXGNvzo/7exojubk+72jn1oJL7keNeIlw7xNglf8TGtJtkR4rWC5FJq0oXiIXPS9BcK2Irg==}
+  electron@39.2.7:
+    resolution: {integrity: sha512-KU0uFS6LSTh4aOIC3miolcbizOFP7N1M46VTYVfqIgFiuA2ilfNaOHLDS9tCMvwwHRowAsvqBrh9NgMXcTOHCQ==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -1824,12 +1814,6 @@ snapshots:
     dependencies:
       '@types/ms': 2.1.0
 
-  '@types/electron@1.6.12':
-    dependencies:
-      electron: 33.4.11
-    transitivePeerDependencies:
-      - supports-color
-
   '@types/fs-extra@9.0.13':
     dependencies:
       '@types/node': 22.19.3
@@ -1841,10 +1825,6 @@ snapshots:
       '@types/node': 22.19.3
 
   '@types/ms@2.1.0': {}
-
-  '@types/node@20.19.27':
-    dependencies:
-      undici-types: 6.21.0
 
   '@types/node@22.19.3':
     dependencies:
@@ -2418,10 +2398,10 @@ snapshots:
       conf: 10.2.0
       type-fest: 2.19.0
 
-  electron@33.4.11:
+  electron@39.2.7:
     dependencies:
       '@electron/get': 2.0.3
-      '@types/node': 20.19.27
+      '@types/node': 22.19.3
       extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color
