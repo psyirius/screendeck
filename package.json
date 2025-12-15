@@ -25,16 +25,15 @@
     },
     "devDependencies": {
         "@electron/notarize": "^2.5.0",
-        "@types/node": "^22.15.29",
+        "@types/node": "^22.19.3",
         "@types/semver": "^7.7.0",
         "@types/ws": "^8.18.1",
-        "concurrently": "^8.0.0",
+        "concurrently": "^9.2.1",
         "electron": "^39.2.7",
         "electron-builder": "^25.1.8",
         "prettier": "^3.3.3",
-        "ts-node": "^10.0.0",
         "typescript": "^5.0.0",
-        "wait-on": "^7.0.0"
+        "wait-on": "^9.0.3"
     },
     "pnpm": {
         "onlyBuiltDependencies": [
