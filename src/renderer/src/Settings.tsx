@@ -317,8 +317,6 @@ function WindowContainer() {
     const [initialized, setInitialized] = useState(false)
 
     useEffect(() => {
-        console.log('WindowContainer mounted')
-
         if (!initialized) {
             _init()
             setInitialized(true)
