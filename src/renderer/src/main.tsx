@@ -3,7 +3,7 @@ import './styles/legacy.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
+import Buttons from './Buttons'
 import Settings from './Settings'
 import ProfilePrompt from './ProfilePrompt'
 import HotkeyPrompt from './HotkeyPrompt'
@@ -19,7 +19,7 @@ function Router() {
     } else if (page.endsWith('profilePrompt')) {
         return <ProfilePrompt />
     } else {
-        return <App />
+        return <Buttons />
     }
 }
 

@@ -764,7 +764,7 @@ function WindowContainer() {
     )
 }
 
-function App() {
+function Buttons() {
     return (
         <>
             <WindowContainer />
@@ -772,4 +772,4 @@ function App() {
     )
 }
 
-export default App
+export default Buttons
