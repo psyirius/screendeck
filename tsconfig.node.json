@@ -1,12 +1,13 @@
 {
-  "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
-  "include": ["electron.vite.config.*",
-      "electron/legacy/**/*",
-      "electron/main/**/*",
-      "electron/preload/**/*"
-  ],
-  "compilerOptions": {
-    "composite": true,
-    "types": ["electron-vite/node"]
-  }
+    "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
+    "include": [
+        "electron.vite.config.*",
+        "electron/legacy/**/*",
+        "electron/main/**/*",
+        "electron/preload/**/*"
+    ],
+    "compilerOptions": {
+        "composite": true,
+        "types": ["electron-vite/node"]
+    }
 }

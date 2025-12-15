@@ -23,9 +23,13 @@ export default defineConfig({
         },
     },
     renderer: {
-        plugins: [tailwindcss(), react()],
-        root: 'src/renderer',
         publicDir: resolve(__dirname, 'static'),
+        root: 'src/renderer',
+        resolve: {
+            alias: {
+                '@': resolve(__dirname, 'src/renderer/src'),
+            },
+        },
         build: {
             rollupOptions: {
                 input: {
@@ -33,5 +37,6 @@ export default defineConfig({
                 },
             },
         },
+        plugins: [react(), tailwindcss()],
     },
 })

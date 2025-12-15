@@ -1,378 +1,275 @@
 // @ts-nocheck
-import './styles/legacy.css'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 
-function injectCSS() {
-    if (injectCSS.injected) return
+// --- Components ---
 
-    const styles = `
-    body {
-        font-family: sans-serif;
-        margin: 20px;
-        padding: 10px;
-    }
-
-    .device {
-        border: 1px solid #ccc;
-        padding: 10px;
-        margin-bottom: 20px;
-        border-radius: 6px;
-        background: #f9f9f9;
-    }
-
-    .device label {
-        font-weight: bold;
-        margin-bottom: 2px;
-    }
-
-    .device input {
-        width: 60px;
-        margin-right: 10px;
-    }
-
-    .device-actions {
-        margin-top: 10px;
-    }
-
-    button {
-        padding: 5px 10px;
-        margin-right: 5px;
-    }
-
-    #addDevice {
-        margin-bottom: 20px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        border-radius: 4px;
-    }`
-    const styleSheet = document.createElement('style')
-    styleSheet.innerText = styles
-    document.head.appendChild(styleSheet)
-
-    injectCSS.injected = true
-}
-
-function WindowContainer() {
-    const [initialized, setInitialized] = useState(false)
-
-    const [devices, setDevices] = useState([])
-    const [companionIP, setCompanionIP] = useState('127.0.0.1')
-    const [companionPort, setCompanionPort] = useState(16622)
-
-    async function loadCompanionSettings() {
-        const settings = await window.electronAPI.invoke('getSettings')
-
-        setCompanionIP(settings.companionIP || '127.0.0.1')
-        setCompanionPort(settings.companionPort || 16622)
-    }
-
-    async function loadDevices() {
-        const devices = await window.electronAPI.invoke('getAllDevices')
-        console.log('Loaded devices:', devices)
-
-        setDevices(devices);
-    }
+const CompanionSettings = ({ ip, port, onSave }) => {
+    const [localIp, setLocalIp] = useState(ip)
+    const [localPort, setLocalPort] = useState(port)
+    const [status, setStatus] = useState('')
 
     useEffect(() => {
-        if (!initialized) {
-            injectCSS()
-            loadCompanionSettings()
-            loadDevices()
+        setLocalIp(ip)
+        setLocalPort(port)
+    }, [ip, port])
 
-            setInitialized(true)
-        }
-    })
-
-    const deviceListRef = React.useRef(null);
-    const addDeviceButtonRef = React.useRef(null);
-
-    const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
-
-    function showSavedNotification() {
-        setShowSaveConfirmation(true);
-        setTimeout(() => {
-            setShowSaveConfirmation(false);
-        }, 2000);
+    const handleSave = async () => {
+        await onSave(localIp, localPort)
+        setStatus('Saved!')
+        setTimeout(() => setStatus(''), 2000)
     }
 
     return (
-        <div className="window-container">
-            <h1>ScreenDeck Settings</h1>
-            <h2>Companion Connection</h2>
-            <label htmlFor="companionIP">IP Address:</label>
-            <input
-                type="text"
-                id="companionIP"
-                placeholder="127.0.0.1"
-                value={companionIP}
-                onChange={(e) => setCompanionIP(e.target.value)}
-                style={{ width: 120 }}
-            />
-            <label htmlFor="companionPort">Port:</label>
-            <input
-                type="number"
-                id="companionPort"
-                placeholder={16622}
-                value={companionPort}
-                onChange={(e) => setCompanionPort(parseInt(e.target.value))}
-                style={{ width: 60 }}
-            />
-            <button
-                id="saveCompanion"
-                style={{ width: 80 }}
-                onClick={async () => {
-                    await window.electronAPI.invoke('saveSettings', {
-                        companionIP,
-                        companionPort,
-                    })
-
-                    // Show status message
-                    const status = document.getElementById('saveStatus')
-                    status.textContent = '✅ Settings Saved!'
-
-                    await loadCompanionSettings()
-
-                    // Optionally clear the message after a few seconds
-                    setTimeout(() => {
-                        status.textContent = ''
-                    }, 1000)
-                }}
-            >
-                Save
-            </button>
-            <span id="saveStatus" style={{ marginLeft: 10, fontSize: '0.9em', color: 'green' }} />
-
-            <hr />
-
-            <button
-                id="addDevice"
-                ref={deviceListRef}
-                onClick={async () => {
-                    await window.electronAPI.invoke('createNewDevice')
-                    await loadDevices()
-                }}
-            >
-                + Add New ScreenDeck
-            </button>
-
-            <div id="deviceList" ref={addDeviceButtonRef}>
-                {...devices.map((device) => (
-                    <div key={device.deviceId} className="device">
-                        <strong>{device.deviceId}</strong>
-                        <hr />
-                        <div
-                            className="device-fields"
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                            }}
-                        >
-                            <div
-                                className="left-fields"
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '4px',
-                                    marginRight: 20,
-                                }}
-                            >
-                                {/* Columns */}
-                                <label htmlFor="columns-count">
-                                    Columns:
-                                    <input
-                                        id="columns-count"
-                                        type="number"
-                                        defaultValue={device.columnCount}
-                                    />
-                                </label>
-                                {/* Rows */}
-                                <label htmlFor="rows-count">
-                                    Rows:
-                                    <input
-                                        id="rows-count"
-                                        type="number"
-                                        defaultValue={device.rowCount}
-                                    />
-                                </label>
-                                {/* Bitmap */}
-                                <label htmlFor="bitmap-size">
-                                    Bitmap Size:
-                                    <input
-                                        id="bitmap-size"
-                                        type="number"
-                                        defaultValue={device.bitmapSize}
-                                    />
-                                </label>
-                                <label htmlFor="background-color">
-                                    Background Color:
-                                    <input
-                                        id="background-color"
-                                        type="color"
-                                        defaultValue={device.backgroundColor || '#000000'}
-                                    />
-                                </label>
-                                <label htmlFor="background-opacity">
-                                    Background Opacity:
-                                    <input
-                                        id="background-opacity"
-                                        type="range"
-                                        min={0}
-                                        max={1}
-                                        step={0.01}
-                                        defaultValue={device.backgroundOpacity || 0.5}
-                                        onInput={(e) => {
-                                            const val = parseFloat(e.target.value)
-                                            window.electronAPI.invoke('updateDeviceConfig', {
-                                                deviceId: device.deviceId,
-                                                config: {
-                                                    backgroundOpacity: val,
-                                                },
-                                            })
-                                        }}
-                                    />
-                                </label>
-                            </div>
-                            <div
-                                className="right-fields"
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '4px',
-                                    marginRight: 20,
-                                }}
-                            >
-                                <label
-                                    htmlFor="always-on-top"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                    }}
-                                >
-                                    <input
-                                        id="always-on-top"
-                                        type="checkbox"
-                                        defaultChecked={device.alwaysOnTop}
-                                    />
-                                    <span>Always On Top</span>
-                                </label>
-                                <label
-                                    htmlFor="movable"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                    }}
-                                >
-                                    <input
-                                        id="movable"
-                                        type="checkbox"
-                                        defaultChecked={device.movable}
-                                    />
-                                    <span>Movable</span>
-                                </label>
-                                <label
-                                    htmlFor="disable-press"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                    }}
-                                >
-                                    <input
-                                        id="disable-press"
-                                        type="checkbox"
-                                        defaultChecked={device.disablePress}
-                                    />
-                                    <span>Disable Button Presses</span>
-                                </label>
-                            </div>
-                        </div>
-                        <hr />
-                        <div className="device-actions">
-                            <button
-                                style={{ marginRight: 5 }}
-                                onClick={async () => {
-                                    const config = {
-                                        columnCount: parseInt(
-                                            document.getElementById('columns-count').value,
-                                            10
-                                        ),
-                                        rowCount: parseInt(
-                                            document.getElementById('rows-count').value,
-                                            10
-                                        ),
-                                        bitmapSize: parseInt(
-                                            document.getElementById('bitmap-size').value,
-                                            10
-                                        ),
-                                        alwaysOnTop:
-                                            document.getElementById('always-on-top').checked,
-                                        movable: document.getElementById('movable').checked,
-                                        disablePress:
-                                            document.getElementById('disable-press').checked,
-                                        backgroundColor:
-                                            document.getElementById('background-color').value,
-                                        backgroundOpacity: parseFloat(
-                                            document.getElementById('background-opacity').value
-                                        ),
-                                    }
-                                    await window.electronAPI.invoke('updateDeviceConfig', {
-                                        deviceId: device.deviceId,
-                                        config,
-                                    })
-
-                                    showSavedNotification()
-                                }}
-                            >
-                                Save
-                            </button>
-                            <button
-                                style={{
-                                    backgroundColor: '#f44336',
-                                    color: 'white',
-                                }}
-                                onClick={async () => {
-                                    if (confirm(`Delete device ${device.deviceId}?`)) {
-                                        await window.electronAPI.invoke(
-                                            'deleteDevice',
-                                            device.deviceId
-                                        )
-                                        await loadDevices()
-                                    }
-                                }}
-                            >
-                                Delete
-                            </button>
-                            {showSaveConfirmation && (
-                                <span
-                                    className="save-confirmation"
-                                    style={{
-                                        marginLeft: 10,
-                                        fontSize: '12px',
-                                        color: '#4CAF50',
-                                        opacity: 1,
-                                        transition: 'opacity 0.3s ease',
-                                    }}
-                                >
-                                    Settings saved!
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                ))}
+        <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Companion Connection</h2>
+            <div className="flex flex-wrap gap-6 items-end">
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700">IP Address</label>
+                    <input
+                        type="text"
+                        className="p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-700"
+                        value={localIp}
+                        onChange={e => setLocalIp(e.target.value)}
+                        placeholder="127.0.0.1"
+                    />
+                </div>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-gray-700">Port</label>
+                    <input
+                        type="number"
+                        className="p-2 w-24 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-700"
+                        value={localPort}
+                        onChange={e => setLocalPort(parseInt(e.target.value) || 0)}
+                        placeholder="16622"
+                    />
+                </div>
+                <div className="flex items-center gap-4">
+                    <button
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors font-medium shadow-sm"
+                        onClick={handleSave}
+                    >
+                        Save Connection
+                    </button>
+                    {status && <span className="text-sm text-green-600 font-medium animate-fade-in">{status}</span>}
+                </div>
             </div>
         </div>
     )
 }
 
-function Settings() {
+const DeviceItem = ({ device, onUpdate, onDelete }) => {
+    const [config, setConfig] = useState({ ...device })
+    const [status, setStatus] = useState('')
+
+    useEffect(() => {
+        setConfig(prev => ({ ...prev, ...device }))
+    }, [device])
+
+    const handleChange = (field, value) => {
+        setConfig(prev => ({ ...prev, [field]: value }))
+    }
+
+    const handleSave = async () => {
+        await onUpdate(device.deviceId, config)
+        setStatus('Saved!')
+        setTimeout(() => setStatus(''), 2000)
+    }
+
     return (
-        <>
-            <WindowContainer />
-        </>
+        <div className="border border-gray-200 p-5 mb-4 rounded-lg bg-gray-50 flex flex-col gap-4 shadow-sm">
+            <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                <span className="font-bold text-gray-700">ID: <span className="font-mono text-gray-600 text-sm">{device.deviceId}</span></span>
+                <button
+                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-colors"
+                    onClick={() => onDelete(device.deviceId)}
+                >
+                    Remove
+                </button>
+            </div>
+
+            <div className="flex flex-wrap gap-6">
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-600 uppercase">Columns</label>
+                    <input
+                        type="number"
+                        className="p-2 w-20 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        value={config.columnCount}
+                        onChange={e => handleChange('columnCount', parseInt(e.target.value) || 0)}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-600 uppercase">Rows</label>
+                    <input
+                        type="number"
+                        className="p-2 w-20 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        value={config.rowCount}
+                        onChange={e => handleChange('rowCount', parseInt(e.target.value) || 0)}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-600 uppercase">Bitmap Size</label>
+                    <input
+                        type="number"
+                        className="p-2 w-24 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        value={config.bitmapSize}
+                        onChange={e => handleChange('bitmapSize', parseInt(e.target.value) || 0)}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-600 uppercase">Bg Color</label>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="color"
+                            className="h-9 w-12 p-0 border-0 rounded cursor-pointer"
+                            value={config.backgroundColor || '#000000'}
+                            onChange={e => handleChange('backgroundColor', e.target.value)}
+                        />
+                        <span className="text-xs text-gray-500 font-mono">{config.backgroundColor}</span>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+                    <label className="text-xs font-semibold text-gray-600 uppercase flex justify-between">
+                        <span>Bg Opacity</span>
+                        <span>{Math.round((config.backgroundOpacity ?? 0.5) * 100)}%</span>
+                    </label>
+                    <input
+                        type="range" min="0" max="1" step="0.05"
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500 mt-2"
+                        value={config.backgroundOpacity ?? 0.5}
+                        onChange={e => handleChange('backgroundOpacity', parseFloat(e.target.value))}
+                    />
+                </div>
+            </div>
+
+            <div className="flex flex-wrap gap-x-6 gap-y-3 mt-2 p-3 bg-white rounded border border-gray-100">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.alwaysOnTop} onChange={e => handleChange('alwaysOnTop', e.target.checked)} />
+                    <span className="text-sm text-gray-700">Always On Top</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.movable} onChange={e => handleChange('movable', e.target.checked)} />
+                    <span className="text-sm text-gray-700">Movable</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.disablePress} onChange={e => handleChange('disablePress', e.target.checked)} />
+                    <span className="text-sm text-gray-700">Disable Presses</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.autoHide} onChange={e => handleChange('autoHide', e.target.checked)} />
+                    <span className="text-sm text-gray-700">Auto-Hide</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" checked={config.hideEmptyKeys} onChange={e => handleChange('hideEmptyKeys', e.target.checked)} />
+                    <span className="text-sm text-gray-700">Hide Empty Keys</span>
+                </label>
+            </div>
+
+            <div className="mt-2 flex justify-end items-center gap-4">
+                {status && <span className="text-sm text-green-600 font-medium animate-fade-in">{status}</span>}
+                <button
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded shadow-sm transition-colors font-medium"
+                    onClick={handleSave}
+                >
+                    Save Device Settings
+                </button>
+            </div>
+        </div>
+    )
+}
+
+const Settings = () => {
+    const [devices, setDevices] = useState([])
+    const [companionSettings, setCompanionSettings] = useState({ ip: '127.0.0.1', port: 16622 })
+    const [loading, setLoading] = useState(true)
+
+    const refreshData = useCallback(async () => {
+        setLoading(true)
+        try {
+            const [allDevices, settings] = await Promise.all([
+                window.electronAPI.invoke('getAllDevices'),
+                window.electronAPI.invoke('getSettings')
+            ])
+
+            setDevices(allDevices || [])
+            setCompanionSettings({
+                ip: settings.companionIP || '127.0.0.1',
+                port: settings.companionPort || 16622
+            })
+        } catch (err) {
+            console.error("Failed to load settings", err)
+        } finally {
+            setLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        refreshData()
+    }, [refreshData])
+
+    const handleSaveCompanion = async (ip, port) => {
+        await window.electronAPI.invoke('saveSettings', { companionIP: ip, companionPort: port })
+        refreshData()
+    }
+
+    const handleUpdateDevice = async (deviceId, config) => {
+        await window.electronAPI.invoke('updateDeviceConfig', { deviceId, config })
+        refreshData()
+    }
+
+    const handleDeleteDevice = async (deviceId) => {
+        if (confirm(`Are you sure you want to remove device ${deviceId}?`)) {
+            await window.electronAPI.invoke('deleteDevice', deviceId)
+            refreshData()
+        }
+    }
+
+    const handleAddDevice = async () => {
+        await window.electronAPI.invoke('createNewDevice')
+        refreshData()
+    }
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto font-sans text-gray-800">
+            <h1 className="text-2xl font-bold mb-6 text-gray-900 border-b pb-2 border-gray-200">ScreenDeck Configuration</h1>
+
+            <CompanionSettings
+                ip={companionSettings.ip}
+                port={companionSettings.port}
+                onSave={handleSaveCompanion}
+            />
+
+            <div className="mb-10">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-gray-800">Devices</h2>
+                    <button
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow transition-colors font-medium flex items-center gap-2"
+                        onClick={handleAddDevice}
+                    >
+                        <span className="text-lg leading-none">+</span> Add Device
+                    </button>
+                </div>
+
+                {loading ? (
+                    <div className="text-center p-8 text-gray-500 animate-pulse">Loading settings...</div>
+                ) : devices.length === 0 ? (
+                    <div className="text-center p-12 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                        <p className="mb-2 text-lg">No devices configured.</p>
+                        <p className="text-sm">Click "Add Device" to create your first deck.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {devices.map(dev => (
+                            <DeviceItem
+                                key={dev.deviceId}
+                                device={dev}
+                                onUpdate={handleUpdateDevice}
+                                onDelete={handleDeleteDevice}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
     )
 }
 

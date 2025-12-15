@@ -1,4 +1,4 @@
-// import './styles/main.css'
+import './styles/main.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -22,7 +22,10 @@ function Router() {
     }
 }
 
-createRoot(document.getElementById('root')!).render(
+// const target = document.getElementById('root')!
+const target = document.body;
+
+createRoot(target).render(
     <StrictMode>
         <Router />
     </StrictMode>
