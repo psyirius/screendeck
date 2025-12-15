@@ -213,16 +213,7 @@ function updateTrayMenu() {
                     process.exit(0)
                 }, 1000)
             },
-        },
-        { type: 'separator' },
-        {
-            label: 'About the Developer',
-            click: () => {
-                require('electron').shell.openExternal(
-                    'https://josephadams.dev'
-                )
-            },
-        },
+        }
     ] as Electron.MenuItemConstructorOptions[]
 
     const contextMenu = Menu.buildFromTemplate([

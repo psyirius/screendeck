@@ -1,4 +1,5 @@
 // @ts-nocheck
+import './styles/legacy.css'
 import React, { useEffect, useState } from 'react'
 
 function hexToRgba(hex, opacity) {
