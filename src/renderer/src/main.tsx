@@ -1,22 +1,26 @@
-import './styles/main.css'
+import '@/styles/main.css'
 
-import { StrictMode } from 'react'
+import React, { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import Buttons from './Buttons'
 import Settings from './Settings'
 import ProfilePrompt from './ProfilePrompt'
 import HotkeyPrompt from './HotkeyPrompt'
 
+function themed(children: React.ReactNode) {
+    return children; // later we can add theme providers here
+}
+
 function Router() {
     const urlParams = new URLSearchParams(window.location.search)
     const page = urlParams.get('page') || '';
 
     if (page.endsWith('settings')) {
-        return <Settings />
+        return themed(<Settings />)
     } else if (page.endsWith('hotkeyPrompt')) {
-        return <HotkeyPrompt />
+        return themed(<HotkeyPrompt />)
     } else if (page.endsWith('profilePrompt')) {
-        return <ProfilePrompt />
+        return themed(<ProfilePrompt />)
     } else {
         return <Buttons />
     }

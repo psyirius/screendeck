@@ -23,7 +23,7 @@ export default function createSettingsWindow() {
         width: 500,
         height: 600,
         alwaysOnTop: true,
-        resizable: false,
+        // resizable: false,
         title: 'Settings',
         webPreferences: {
             preload: path.join(__dirname, '../preload/index.js'),

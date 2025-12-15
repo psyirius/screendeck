@@ -28,7 +28,7 @@ const styles = `
 
     /* Keypad styles */
     .keypad {
-        display: grid;
+        /* display: grid; */ /* we set it later */
         gap: 10px;
         padding: 20px;
         background: rgba(0, 0, 0, 0.5);
@@ -37,6 +37,7 @@ const styles = `
 
     #keypad {
         position: relative;
+        height: 100%;
     }
 
     .device-label {
@@ -338,6 +339,7 @@ const styles = `
         transform: translate(-50%, -50%);
         text-align: center;
         opacity: 0.8;
+        z-index: 1000;
     }
 
     #loadingMessage img {
