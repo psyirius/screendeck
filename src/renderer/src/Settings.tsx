@@ -7,45 +7,45 @@ function injectCSS() {
 
     const styles = `
     body {
-                font-family: sans-serif;
-                margin: 20px;
-                padding: 10px;
-            }
+        font-family: sans-serif;
+        margin: 20px;
+        padding: 10px;
+    }
 
-            .device {
-                border: 1px solid #ccc;
-                padding: 10px;
-                margin-bottom: 20px;
-                border-radius: 6px;
-                background: #f9f9f9;
-            }
+    .device {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 6px;
+        background: #f9f9f9;
+    }
 
-            .device label {
-                font-weight: bold;
-                margin-bottom: 2px;
-            }
+    .device label {
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
 
-            .device input {
-                width: 60px;
-                margin-right: 10px;
-            }
+    .device input {
+        width: 60px;
+        margin-right: 10px;
+    }
 
-            .device-actions {
-                margin-top: 10px;
-            }
+    .device-actions {
+        margin-top: 10px;
+    }
 
-            button {
-                padding: 5px 10px;
-                margin-right: 5px;
-            }
+    button {
+        padding: 5px 10px;
+        margin-right: 5px;
+    }
 
-            #addDevice {
-                margin-bottom: 20px;
-                background-color: #4caf50;
-                color: white;
-                border: none;
-                border-radius: 4px;
-            }`
+    #addDevice {
+        margin-bottom: 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+    }`
     const styleSheet = document.createElement('style')
     styleSheet.innerText = styles
     document.head.appendChild(styleSheet)
@@ -53,294 +53,317 @@ function injectCSS() {
     injectCSS.injected = true
 }
 
-const _init = () => {
-    injectCSS();
+function WindowContainer() {
+    const [initialized, setInitialized] = useState(false)
 
-    const deviceList = document.getElementById('deviceList')
-    const addDeviceButton = document.getElementById('addDevice')
-
-    loadCompanionSettings()
-    loadDevices()
-
-    document
-        .getElementById('saveCompanion')
-        .addEventListener('click', async () => {
-            const ip = document.getElementById('companionIP').value
-            const port = parseInt(
-                document.getElementById('companionPort').value,
-                10
-            )
-
-            await window.electronAPI.invoke('saveSettings', {
-                companionIP: ip,
-                companionPort: port,
-            })
-
-            // Show status message
-            const status = document.getElementById('saveStatus')
-            status.textContent = '✅ Settings Saved!'
-
-            // Optionally clear the message after a few seconds
-            setTimeout(() => {
-                status.textContent = ''
-                window.electronAPI.invoke('closeSettingsWindow')
-            }, 1000)
-        })
+    const [devices, setDevices] = useState([])
+    const [companionIP, setCompanionIP] = useState('127.0.0.1')
+    const [companionPort, setCompanionPort] = useState(16622)
 
     async function loadCompanionSettings() {
         const settings = await window.electronAPI.invoke('getSettings')
 
-        document.getElementById('companionIP').value =
-            settings.companionIP || '127.0.0.1'
-        document.getElementById('companionPort').value =
-            settings.companionPort || 16622
+        setCompanionIP(settings.companionIP || '127.0.0.1')
+        setCompanionPort(settings.companionPort || 16622)
     }
 
     async function loadDevices() {
         const devices = await window.electronAPI.invoke('getAllDevices')
-        deviceList.innerHTML = ''
+        console.log('Loaded devices:', devices)
 
-        devices.forEach((device) => {
-            const container = document.createElement('div')
-            container.classList.add('device')
-
-            const idLabel = document.createElement('strong')
-            idLabel.textContent = device.deviceId
-            container.appendChild(idLabel)
-
-            // === Left side fields ===
-            const leftFields = document.createElement('div')
-            leftFields.style.display = 'flex'
-            leftFields.style.flexDirection = 'column'
-            leftFields.style.gap = '4px'
-            leftFields.style.marginRight = '20px'
-
-            // === Right side fields ===
-            const rightFields = document.createElement('div')
-            rightFields.style.display = 'flex'
-            rightFields.style.flexDirection = 'column'
-            rightFields.style.gap = '4px'
-
-            const columnCountInput = createInput('Columns', device.columnCount)
-            const rowCountInput = createInput('Rows', device.rowCount)
-            const bitmapSizeInput = createInput('Bitmap', device.bitmapSize)
-            const alwaysOnTopInput = createCheckbox(
-                'Always On Top',
-                device.alwaysOnTop
-            )
-            const movableInput = createCheckbox('Movable', device.movable)
-            const disablePressInput = createCheckbox(
-                'Disable Button Presses',
-                device.disablePress
-            )
-            const autoHideInput = createCheckbox(
-                'Auto Hide on Mouse Leave',
-                device.autoHide || false
-            )
-            const hideEmptyKeysInput = createCheckbox(
-                'Hide Empty Keys',
-                device.hideEmptyKeys || false
-            )
-
-            // Create color picker
-            const backgroundColorInput = document.createElement('input')
-            backgroundColorInput.type = 'color'
-            backgroundColorInput.value = device.backgroundColor || '#000000'
-
-            const backgroundOpacityInput = document.createElement('input')
-            backgroundOpacityInput.type = 'range'
-            backgroundOpacityInput.min = 0
-            backgroundOpacityInput.max = 1
-            backgroundOpacityInput.step = 0.01
-            backgroundOpacityInput.value = device.backgroundOpacity || 0.5
-
-            const backgroundColorLabel = document.createElement('label')
-            backgroundColorLabel.textContent = 'Background Color: '
-            backgroundColorLabel.appendChild(backgroundColorInput)
-
-            const backgroundOpacityLabel = document.createElement('label')
-            backgroundOpacityLabel.textContent = 'Background Opacity: '
-            backgroundOpacityLabel.appendChild(backgroundOpacityInput)
-
-            /*backgroundColorInput.addEventListener('input', async () => {
-                await window.electronAPI.invoke('updateDeviceConfig', {
-                    deviceId: device.deviceId,
-                    config: { backgroundColor: backgroundColorInput.value },
-                })
-            })*/
-
-            backgroundOpacityInput.addEventListener('input', async () => {
-                await window.electronAPI.invoke('updateDeviceConfig', {
-                    deviceId: device.deviceId,
-                    config: {
-                        backgroundOpacity: parseFloat(
-                            backgroundOpacityInput.value
-                        ),
-                    },
-                })
-            })
-
-            container.appendChild(document.createElement('hr'))
-
-            // Append to leftFields
-            ;[columnCountInput, rowCountInput, bitmapSizeInput].forEach(
-                (inputObj) => {
-                    leftFields.appendChild(inputObj.label)
-                    leftFields.appendChild(inputObj.input)
-                }
-            )
-            leftFields.appendChild(backgroundColorLabel)
-            leftFields.appendChild(backgroundOpacityLabel)
-            ;[
-                alwaysOnTopInput,
-                movableInput,
-                disablePressInput,
-                //autoHideInput,
-                //hideEmptyKeysInput,
-            ].forEach((inputObj) => {
-                rightFields.appendChild(inputObj.label)
-                rightFields.appendChild(inputObj.input)
-            })
-            // === Add fields to a row container ===
-            const fieldsContainer = document.createElement('div')
-            fieldsContainer.style.display = 'flex'
-            fieldsContainer.style.justifyContent = 'space-between'
-            fieldsContainer.style.alignItems = 'flex-start'
-            fieldsContainer.appendChild(leftFields)
-            fieldsContainer.appendChild(rightFields)
-
-            container.appendChild(fieldsContainer)
-            container.appendChild(document.createElement('hr'))
-
-            // Save & Delete buttons
-            const actions = document.createElement('div')
-            actions.classList.add('device-actions')
-
-            const saveBtn = document.createElement('button')
-            saveBtn.textContent = 'Save'
-            saveBtn.addEventListener('click', async () => {
-                const config = {
-                    columnCount: parseInt(columnCountInput.input.value, 10),
-                    rowCount: parseInt(rowCountInput.input.value, 10),
-                    bitmapSize: parseInt(bitmapSizeInput.input.value),
-                    alwaysOnTop: alwaysOnTopInput.input.checked,
-                    movable: movableInput.input.checked,
-                    disablePress: disablePressInput.input.checked,
-                    //autoHide: autoHideInput.input.checked,
-                    //hideEmptyKeys: hideEmptyKeysInput.input.checked,
-                    backgroundColor: backgroundColorInput.value,
-                    backgroundOpacity: parseFloat(backgroundOpacityInput.value),
-                }
-                await window.electronAPI.invoke('updateDeviceConfig', {
-                    deviceId: device.deviceId,
-                    config,
-                })
-                if (!container.querySelector('.save-confirmation')) {
-                    const confirmation = document.createElement('span')
-                    confirmation.className = 'save-confirmation'
-                    confirmation.textContent = 'Settings saved!'
-                    confirmation.style.marginLeft = '10px'
-                    confirmation.style.fontSize = '12px'
-                    confirmation.style.color = '#4CAF50'
-                    confirmation.style.opacity = '0'
-                    confirmation.style.transition = 'opacity 0.3s ease'
-
-                    actions.appendChild(confirmation)
-
-                    setTimeout(() => {
-                        confirmation.style.opacity = '1'
-                    }, 10)
-
-                    setTimeout(() => {
-                        confirmation.style.opacity = '0'
-                        setTimeout(() => confirmation.remove(), 300)
-                    }, 1500)
-                }
-            })
-            actions.appendChild(saveBtn)
-
-            const deleteBtn = document.createElement('button')
-            deleteBtn.textContent = 'Delete'
-            deleteBtn.style.backgroundColor = '#f44336'
-            deleteBtn.style.color = 'white'
-            deleteBtn.addEventListener('click', async () => {
-                if (confirm(`Delete device ${device.deviceId}?`)) {
-                    await window.electronAPI.invoke(
-                        'deleteDevice',
-                        device.deviceId
-                    )
-                    loadDevices()
-                }
-            })
-            actions.appendChild(deleteBtn)
-
-            container.appendChild(actions)
-            deviceList.appendChild(container)
-        })
+        setDevices(devices);
     }
-
-    function createCheckbox(labelText, checked) {
-        const container = document.createElement('label')
-        container.style.display = 'flex'
-        container.style.alignItems = 'center'
-        container.style.gap = '4px'
-
-        const input = document.createElement('input')
-        input.type = 'checkbox'
-        input.checked = checked
-
-        const label = document.createElement('span')
-        label.textContent = labelText
-
-        container.appendChild(input)
-        container.appendChild(label)
-
-        return { label: container, input }
-    }
-
-    function createInput(labelText, value) {
-        const label = document.createElement('label')
-        label.textContent = labelText + ': '
-        const input = document.createElement('input')
-        input.type = 'number'
-        input.value = value
-        return { label, input }
-    }
-
-    addDeviceButton.addEventListener('click', async () => {
-        await window.electronAPI.invoke('createNewDevice')
-        loadDevices()
-    })
-}
-
-function WindowContainer() {
-    const [initialized, setInitialized] = useState(false)
 
     useEffect(() => {
         if (!initialized) {
-            _init()
+            injectCSS()
+            loadCompanionSettings()
+            loadDevices()
+
             setInitialized(true)
         }
     })
+
+    const deviceListRef = React.useRef(null);
+    const addDeviceButtonRef = React.useRef(null);
+
+    const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+
+    function showSavedNotification() {
+        setShowSaveConfirmation(true);
+        setTimeout(() => {
+            setShowSaveConfirmation(false);
+        }, 2000);
+    }
 
     return (
         <div className="window-container">
             <h1>ScreenDeck Settings</h1>
             <h2>Companion Connection</h2>
             <label htmlFor="companionIP">IP Address:</label>
-            <input type="text" id="companionIP" placeholder="127.0.0.1" style={{ width: 120 }} />
+            <input
+                type="text"
+                id="companionIP"
+                placeholder="127.0.0.1"
+                value={companionIP}
+                onChange={(e) => setCompanionIP(e.target.value)}
+                style={{ width: 120 }}
+            />
             <label htmlFor="companionPort">Port:</label>
-            <input type="number" id="companionPort" placeholder={16622} style={{ width: 60 }} />
-            <button id="saveCompanion" style={{ width: 80 }}>
+            <input
+                type="number"
+                id="companionPort"
+                placeholder={16622}
+                value={companionPort}
+                onChange={(e) => setCompanionPort(parseInt(e.target.value))}
+                style={{ width: 60 }}
+            />
+            <button
+                id="saveCompanion"
+                style={{ width: 80 }}
+                onClick={async () => {
+                    await window.electronAPI.invoke('saveSettings', {
+                        companionIP,
+                        companionPort,
+                    })
+
+                    // Show status message
+                    const status = document.getElementById('saveStatus')
+                    status.textContent = '✅ Settings Saved!'
+
+                    await loadCompanionSettings()
+
+                    // Optionally clear the message after a few seconds
+                    setTimeout(() => {
+                        status.textContent = ''
+                    }, 1000)
+                }}
+            >
                 Save
             </button>
             <span id="saveStatus" style={{ marginLeft: 10, fontSize: '0.9em', color: 'green' }} />
 
             <hr />
 
-            <button id="addDevice">+ Add New ScreenDeck</button>
+            <button
+                id="addDevice"
+                ref={deviceListRef}
+                onClick={async () => {
+                    await window.electronAPI.invoke('createNewDevice')
+                    await loadDevices()
+                }}
+            >
+                + Add New ScreenDeck
+            </button>
 
-            <div id="deviceList"></div>
+            <div id="deviceList" ref={addDeviceButtonRef}>
+                {...devices.map((device) => (
+                    <div key={device.deviceId} className="device">
+                        <strong>{device.deviceId}</strong>
+                        <hr />
+                        <div
+                            className="device-fields"
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                            }}
+                        >
+                            <div
+                                className="left-fields"
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                    marginRight: 20,
+                                }}
+                            >
+                                {/* Columns */}
+                                <label htmlFor="columns-count">
+                                    Columns:
+                                    <input
+                                        id="columns-count"
+                                        type="number"
+                                        defaultValue={device.columnCount}
+                                    />
+                                </label>
+                                {/* Rows */}
+                                <label htmlFor="rows-count">
+                                    Rows:
+                                    <input
+                                        id="rows-count"
+                                        type="number"
+                                        defaultValue={device.rowCount}
+                                    />
+                                </label>
+                                {/* Bitmap */}
+                                <label htmlFor="bitmap-size">
+                                    Bitmap Size:
+                                    <input
+                                        id="bitmap-size"
+                                        type="number"
+                                        defaultValue={device.bitmapSize}
+                                    />
+                                </label>
+                                <label htmlFor="background-color">
+                                    Background Color:
+                                    <input
+                                        id="background-color"
+                                        type="color"
+                                        defaultValue={device.backgroundColor || '#000000'}
+                                    />
+                                </label>
+                                <label htmlFor="background-opacity">
+                                    Background Opacity:
+                                    <input
+                                        id="background-opacity"
+                                        type="range"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        defaultValue={device.backgroundOpacity || 0.5}
+                                        onInput={(e) => {
+                                            const val = parseFloat(e.target.value)
+                                            window.electronAPI.invoke('updateDeviceConfig', {
+                                                deviceId: device.deviceId,
+                                                config: {
+                                                    backgroundOpacity: val,
+                                                },
+                                            })
+                                        }}
+                                    />
+                                </label>
+                            </div>
+                            <div
+                                className="right-fields"
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                    marginRight: 20,
+                                }}
+                            >
+                                <label
+                                    htmlFor="always-on-top"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                    }}
+                                >
+                                    <input
+                                        id="always-on-top"
+                                        type="checkbox"
+                                        defaultChecked={device.alwaysOnTop}
+                                    />
+                                    <span>Always On Top</span>
+                                </label>
+                                <label
+                                    htmlFor="movable"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                    }}
+                                >
+                                    <input
+                                        id="movable"
+                                        type="checkbox"
+                                        defaultChecked={device.movable}
+                                    />
+                                    <span>Movable</span>
+                                </label>
+                                <label
+                                    htmlFor="disable-press"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                    }}
+                                >
+                                    <input
+                                        id="disable-press"
+                                        type="checkbox"
+                                        defaultChecked={device.disablePress}
+                                    />
+                                    <span>Disable Button Presses</span>
+                                </label>
+                            </div>
+                        </div>
+                        <hr />
+                        <div className="device-actions">
+                            <button
+                                style={{ marginRight: 5 }}
+                                onClick={async () => {
+                                    const config = {
+                                        columnCount: parseInt(
+                                            document.getElementById('columns-count').value,
+                                            10
+                                        ),
+                                        rowCount: parseInt(
+                                            document.getElementById('rows-count').value,
+                                            10
+                                        ),
+                                        bitmapSize: parseInt(
+                                            document.getElementById('bitmap-size').value,
+                                            10
+                                        ),
+                                        alwaysOnTop:
+                                            document.getElementById('always-on-top').checked,
+                                        movable: document.getElementById('movable').checked,
+                                        disablePress:
+                                            document.getElementById('disable-press').checked,
+                                        backgroundColor:
+                                            document.getElementById('background-color').value,
+                                        backgroundOpacity: parseFloat(
+                                            document.getElementById('background-opacity').value
+                                        ),
+                                    }
+                                    await window.electronAPI.invoke('updateDeviceConfig', {
+                                        deviceId: device.deviceId,
+                                        config,
+                                    })
+
+                                    showSavedNotification()
+                                }}
+                            >
+                                Save
+                            </button>
+                            <button
+                                style={{
+                                    backgroundColor: '#f44336',
+                                    color: 'white',
+                                }}
+                                onClick={async () => {
+                                    if (confirm(`Delete device ${device.deviceId}?`)) {
+                                        await window.electronAPI.invoke(
+                                            'deleteDevice',
+                                            device.deviceId
+                                        )
+                                        await loadDevices()
+                                    }
+                                }}
+                            >
+                                Delete
+                            </button>
+                            {showSaveConfirmation && (
+                                <span
+                                    className="save-confirmation"
+                                    style={{
+                                        marginLeft: 10,
+                                        fontSize: '12px',
+                                        color: '#4CAF50',
+                                        opacity: 1,
+                                        transition: 'opacity 0.3s ease',
+                                    }}
+                                >
+                                    Settings saved!
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }
