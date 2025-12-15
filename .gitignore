@@ -26,9 +26,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# JetBrains
-.idea/
-
 # Logs
 logs
 *.log
@@ -38,7 +35,6 @@ yarn-error.log*
 
 # Compiled output
 dist/
-build/
 
 # Runtime data
 pids
@@ -77,3 +73,6 @@ out/
 *.temp
 
 .yarn/
+
+.eslintcache
+*.log*

@@ -4,7 +4,7 @@
   "appId": "com.josephadams.screendeck",
   "productName": "screendeck",
   "files": [
-    "dist/**/*",
+    "out/**/*",
     "public/**/*",
     "assets/**/*"
   ],
@@ -27,8 +27,8 @@
     },
     "hardenedRuntime": true,
     "gatekeeperAssess": true,
-    "entitlements": "entitlements.mac.plist",
-    "entitlementsInherit": "entitlements.mac.plist"
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist"
   },
   "win": {
     "target": "nsis",

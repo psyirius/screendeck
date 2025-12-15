@@ -3,41 +3,62 @@
     "version": "2.0.0",
     "author": "Joseph Adams <joseph@josephadams.dev>",
     "description": "ScreenDeck is a virtual on-screen stream deck for Bitfocus Companion.",
-    "main": "dist/main.js",
+    "main": "./out/main/index.js",
     "scripts": {
-        "start": "pnpm build && electron .",
-        "build": "tsc",
-        "dev": "concurrently \"tsc -w\" \"wait-on dist/main.js && electron .\"",
-        "format": "prettier -w .",
-        "lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
-        "lint": "pnpm lint:raw .",
-        "test:build": "pnpm build && pnpm electron-builder --dir --config",
+        "start": "electron-vite preview",
+        "dev": "electron-vite dev",
+        "build": "npm run typecheck && electron-vite build",
+        "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+        "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+        "typecheck": "pnpm typecheck:node && pnpm typecheck:web",
+        "format": "prettier --write .",
+        "lint": "eslint --cache .",
+        "postinstall": "electron-builder install-app-deps",
+        "build:unpack": "pnpm build && electron-builder --dir",
         "build:mac": "pnpm build && electron-builder --mac",
         "build:win": "pnpm build && electron-builder --win",
-        "build:linux": "pnpm build && electron-builder --linux",
-        "build:arm64": "pnpm build && electron-builder --linux --arm64"
+        "build:linux-amd64": "pnpm build && electron-builder --linux",
+        "build:linux-arm64": "pnpm build && electron-builder --linux --arm64"
     },
     "dependencies": {
+        "@electron-toolkit/preload": "^3.0.2",
+        "@electron-toolkit/utils": "^4.0.0",
         "electron-store": "^8.0.0",
+        "electron-updater": "^6.3.9",
         "semver": "^7.7.2",
         "short-uuid": "^5.2.0",
         "ws": "^8.18.2"
     },
     "devDependencies": {
+        "@electron-toolkit/eslint-config-prettier": "^3.0.0",
+        "@electron-toolkit/eslint-config-ts": "^3.1.0",
+        "@electron-toolkit/tsconfig": "^2.0.0",
         "@electron/notarize": "^2.5.0",
-        "@types/node": "^22.19.3",
+        "@types/node": "^22.19.1",
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
         "@types/semver": "^7.7.0",
         "@types/ws": "^8.18.1",
-        "concurrently": "^9.2.1",
+        "@vitejs/plugin-react": "^5.1.1",
+        "@vitejs/plugin-react-swc": "^4.2.2",
         "electron": "^39.2.7",
-        "electron-builder": "^25.1.8",
-        "prettier": "^3.3.3",
-        "typescript": "^5.0.0",
-        "wait-on": "^9.0.3"
+        "electron-builder": "^26.0.12",
+        "electron-vite": "^5.0.0",
+        "eslint": "^9.39.1",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^7.0.1",
+        "eslint-plugin-react-refresh": "^0.4.24",
+        "prettier": "^3.7.4",
+        "react": "^19.2.1",
+        "react-dom": "^19.2.1",
+        "typescript": "^5.9.3",
+        "vite": "^7.2.6"
     },
     "pnpm": {
         "onlyBuiltDependencies": [
-            "electron"
+            "@swc/core",
+            "electron",
+            "esbuild"
         ]
     }
 }
