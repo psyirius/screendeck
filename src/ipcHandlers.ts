@@ -4,15 +4,14 @@ import Store from 'electron-store'
 import { defaultSettings } from './defaults'
 import { createSatellite, getNextProfileName } from './utils'
 import { updateTrayMenu } from './tray'
-
-import { registerHotkey, unregisterHotkey } from './hotkeys' // Import the hotkey registration function
+import { registerHotkey, unregisterHotkey } from './hotkeys'
 import {
     createNewDevice,
     createDeviceWindow,
     calculateWindowSize,
     showDeviceLabels,
     resizeWindowForDevice,
-} from './device' // Import the device ID creation function
+} from './device'
 
 const store = new Store({ defaults: defaultSettings })
 

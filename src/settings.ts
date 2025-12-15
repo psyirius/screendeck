@@ -1,11 +1,9 @@
 import { BrowserWindow } from 'electron'
 import * as path from 'path'
+import { showDeviceLabels } from './device'
+import { showDevTools } from './utils'
 
 let settingsWindow: BrowserWindow | null = null
-
-import { showDeviceLabels } from './device' // Import the function to show/hide device labels
-
-import { showDevTools } from './utils' // Import the utility to check if dev tools should be shown
 
 export default function createSettingsWindow() {
     if (settingsWindow) {

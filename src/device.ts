@@ -1,13 +1,12 @@
 import Store from 'electron-store'
-
 import { BrowserWindow, screen } from 'electron'
 import * as path from 'path'
 import ShortUniqueId from 'short-uuid'
-import { defaultSettings } from './defaults' // Your settings file
-import { showDevTools } from './utils' // Import utility to check if dev tools should be shown
+import { defaultSettings, SettingsType } from './defaults'
+import { showDevTools } from './utils'
 import { updateTrayMenu } from './tray'
 
-const store = new Store({ defaults: defaultSettings })
+const store = new Store<SettingsType>({ defaults: defaultSettings })
 
 export function createDeviceWindows() {
     const deviceIds = store.get('deviceIds') as string[] | undefined

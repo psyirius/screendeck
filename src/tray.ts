@@ -1,16 +1,15 @@
 import { Tray, Menu, nativeImage, app } from 'electron'
 import * as path from 'path'
 import Store from 'electron-store'
-import createSettingsWindow from './settings' // Import the createSettingsWindow function
+import createSettingsWindow from './settings'
 import {
     loadProfile,
     deleteProfile,
     saveProfile,
     promptForProfileName,
-} from './utils' // Import profile management functions
-import { ProfilesStore } from './types' // Import the ProfilesStore type
-
-import { unregisterAllHotkeys } from './hotkeys' // Import hotkey management functions
+} from './utils'
+import { ProfilesStore } from './types'
+import { unregisterAllHotkeys } from './hotkeys'
 
 let tray: Tray | null = null
 const store = new Store()

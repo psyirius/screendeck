@@ -86,10 +86,7 @@ export function isHotkeyConflict(
     if (!mapping) return false
 
     // If it's already mapped to this key, no problem
-    if (mapping.deviceId === deviceId && mapping.keyIndex === keyIndex)
-        return false
-
-    return true
+    return !(mapping.deviceId === deviceId && mapping.keyIndex === keyIndex);
 }
 
 // Reload all hotkeys from the store at startup

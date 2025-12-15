@@ -6,7 +6,7 @@ import {
     SurfaceProxyDrawProps,
     assertNever,
     DEFAULT_TCP_PORT,
-} from './client-types.js'
+} from './client-types'
 import * as semver from 'semver'
 import {
     CompanionSatelliteTcpClient,
@@ -15,7 +15,7 @@ import {
     ICompanionSatelliteClient,
     ICompanionSatelliteClientOptions,
     SomeConnectionDetails,
-} from './client-implementations.js'
+} from './client-implementations'
 
 /**
  * This implementation is derived from the companion-satellite project

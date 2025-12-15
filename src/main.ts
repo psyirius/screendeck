@@ -1,42 +1,9 @@
 import { app, BrowserWindow } from 'electron'
-import type { CompanionSatelliteClient } from './client' // Your new client class
-import { initializeIpcHandlers } from './ipcHandlers' // Import IPC handlers
-import createTray from './tray' // Import the tray creation function
-
-import { initializeDeviceIds, createSatellite } from './utils' // Import utility functions
-
-import { createDeviceWindows } from './device' // Import device window creation
-
+import { initializeIpcHandlers } from './ipcHandlers'
+import createTray from './tray'
+import { initializeDeviceIds, createSatellite } from './utils'
+import { createDeviceWindows } from './device'
 import { loadHotkeysFromStore } from './hotkeys'
-
-declare global {
-    var satelliteClient: CompanionSatelliteClient | null
-    var deviceWindows: Map<string, BrowserWindow>
-    var keyStates: Map<
-        string,
-        Map<
-            number,
-            {
-                imageBase64?: string
-                color?: string
-                text?: string
-                // add more fields as needed (e.g., textColor, fontSize)
-            }
-        >
-    >
-    var hotkeyPromptWindow: BrowserWindow | null
-    var hotkeyContext: {
-        deviceId: string
-        keyIndex: number
-        imageBase64: string
-    } | null
-    var registeredHotkeys: Map<
-        string,
-        { deviceId: string; keyIndex: number; imageBase64: string }
-    >
-    var trayParentWindow: BrowserWindow
-    var settingsWindow: BrowserWindow | null
-}
 
 // Initialize the Companion Satellite client and device windows
 function init() {

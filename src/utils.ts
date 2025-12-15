@@ -1,14 +1,14 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import Store from 'electron-store'
 import ShortUniqueId from 'short-uuid'
-import { defaultSettings } from './defaults' // Your settings file
+import { defaultSettings } from './defaults'
 import path from 'path'
-import { createNewDevice, createDeviceWindows, showWindows } from './device' // Function to create a new device
-import { CompanionSatelliteClient } from './client' // Your new client class
+import { createNewDevice, showWindows } from './device'
+import { CompanionSatelliteClient } from './client'
 import { updateTrayMenu } from './tray'
-import { ProfilesStore, Profile } from './types' // Import your types
+import { Profile, ProfilesStore } from './types'
 import { showNotification } from './notification'
-import { unregisterAllHotkeys, loadHotkeysFromStore } from './hotkeys' // Import hotkey management functions
+import { unregisterAllHotkeys } from './hotkeys'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -214,12 +214,11 @@ export function saveProfile(profileName: string) {
     const profileId = generateProfileId()
 
     const profiles: ProfilesStore = store.get('profiles', {})
-    const newProfile: Profile = {
+    profiles[profileId] = {
         name: profileName,
         deviceIds: store.get('deviceIds', []),
         devices: store.get('device', {}),
     }
-    profiles[profileId] = newProfile
     store.set('profiles', profiles)
 
     console.log(`Profile "${profileName}" saved as ${profileId}.`)
