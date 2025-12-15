@@ -1,5 +1,5 @@
-// @ts-nocheck
-import React, { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { hexToRgba } from './color';
 
 // --- Styles ---
 const styles = `
@@ -399,33 +399,34 @@ const InjectStyles = () => (
     <style>{styles}</style>
 )
 
-function hexToRgba(hex, opacity) {
-    if (!hex) return `rgba(0,0,0,${opacity})`
-    const bigint = parseInt(hex.replace('#', ''), 16)
-    const r = (bigint >> 16) & 255
-    const g = (bigint >> 8) & 255
-    const b = bigint & 255
-    return `rgba(${r},${g},${b},${opacity})`
-}
-
 const _init = () => {
+    if ((_init as any).done) return;
+
     const urlParams = new URLSearchParams(window.location.search)
-    const deviceId = urlParams.get('deviceId')
+    const deviceId = urlParams.get('deviceId')!
 
     if (!deviceId) {
         console.error('No deviceId in query string')
         throw new Error('No deviceId')
     }
 
-    let keyElements = []
+    const keyElements: HTMLElement[] = []
     const activeKeys = new Set()
 
     let globalColumnCount = 0
+    // @ts-ignore
     let globalRowCount = 0
-    let keyStates = new Map() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
 
-    let initialBackground = null
-    let initialOpacity = null
+    let keyStates = new Map<
+        string,
+        Map<number, {
+            keyIndex: string | null;
+            bitmap: string | null;
+            text: string | null;
+            color: string | null;
+            imageBase64: string | null;
+        }>
+    >() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
 
     let globalAutoHideOnLeave = false
     let globalHideEmptyKeys = false
@@ -443,11 +444,14 @@ const _init = () => {
         }
 
         // Handle auto hide on mouse leave
-        let hideTimeout = null
+        let hideTimeout: ReturnType<typeof setTimeout> | null = null
 
-        let originalBounds = null
+        let originalBounds: {
+            height: number
+            width: number
+        } | null = null
 
-        const windowContainer = document.querySelector('.window-container')
+        // const windowContainer = document.querySelector('.window-container')
 
         function hideKeypad() {
             console.log('Hiding keypad for device:', deviceId)
@@ -562,8 +566,8 @@ const _init = () => {
         if (columnCount <= 0 || rowCount <= 0) {
             console.warn(`No keys defined for ${deviceId}. Hiding UI.`)
             document.body.style.backgroundColor = 'transparent'
-            document.getElementById('keypad').style.display = 'none'
-            document.getElementById('closeButton').style.display = 'none'
+            document.getElementById('keypad')!.style.display = 'none'
+            document.getElementById('closeButton')!.style.display = 'none'
             return
         }
 
@@ -571,7 +575,7 @@ const _init = () => {
     })
 
     function buildKeyGrid(columnCount, rowCount) {
-        const keypad = document.getElementById('keypad')
+        const keypad = document.getElementById('keypad')!
         globalColumnCount = columnCount
         globalRowCount = rowCount
         const keysTotal = columnCount * rowCount
@@ -580,12 +584,12 @@ const _init = () => {
 
         // Remove existing keys
         keypad.querySelectorAll('.key').forEach((key) => key.remove())
-        keyElements = []
+        keyElements.length = 0
 
         for (let i = 0; i < keysTotal; i++) {
-            const keyElement = document.createElement('div')
+            const keyElement = document.createElement('div')!
             keyElement.className = 'key'
-            keyElement.dataset.index = i
+            keyElement.dataset.index = String(i)
             //keyElement.style.display = 'flex'
             keypad.appendChild(keyElement)
             keyElements.push(keyElement)
@@ -598,65 +602,65 @@ const _init = () => {
         //updateGridLayout() // Initial layout calc after grid build
     }
 
-    function checkKeyStates() {
-        if (!keyStates || keyStates.size === 0) {
-            console.log('No key states found for device:', deviceId)
-            // Show loading message
-            //document.getElementById('loadingMessage').style.display = 'block'
-            //find all elements with class 'key' and hide them
-            document.querySelectorAll('.key').forEach((key) => {
-                //key.style.visibility = 'hidden'
-            })
-        } else {
-            document.getElementById('loadingMessage').style.display = 'none'
-            document.getElementById('keypad').style.display = 'grid'
-            //find all elements with class 'key' and show them
-            document.querySelectorAll('.key').forEach((key) => {
-                key.style.visibility = 'visible'
-            })
-        }
-    }
+    // function checkKeyStates() {
+    //     if (!keyStates || keyStates.size === 0) {
+    //         console.log('No key states found for device:', deviceId)
+    //         // Show loading message
+    //         //document.getElementById('loadingMessage').style.display = 'block'
+    //         //find all elements with class 'key' and hide them
+    //         document.querySelectorAll('.key').forEach((key) => {
+    //             //key.style.visibility = 'hidden'
+    //         })
+    //     } else {
+    //         document.getElementById('loadingMessage').style.display = 'none'
+    //         document.getElementById('keypad').style.display = 'grid'
+    //         //find all elements with class 'key' and show them
+    //         document.querySelectorAll('.key').forEach((key) => {
+    //             key.style.visibility = 'visible'
+    //         })
+    //     }
+    // }
+    //
+    // let currentMaxColumns = 0
+    // let currentMaxRows = 0
+    //
+    // function updateGridLayout() {
+    //     const keypad = document.getElementById('keypad')
+    //     if (!globalHideEmptyKeys) {
+    //         keypad.style.gridTemplateColumns = `repeat(${globalColumnCount}, 1fr)`
+    //         currentMaxColumns = globalColumnCount
+    //         currentMaxRows = globalRowCount
+    //         return
+    //     }
+    //
+    //     let maxCols = 0
+    //     let maxRow = 0
+    //     for (let row = 0; row < globalRowCount; row++) {
+    //         let rowHasContent = false
+    //         let rowCols = 0
+    //         for (let col = 0; col < globalColumnCount; col++) {
+    //             const index = row * globalColumnCount + col
+    //             const keyEl = keyElements[index]
+    //             if (keyEl && keyEl.style.display !== 'none') {
+    //                 rowHasContent = true
+    //                 rowCols++
+    //             }
+    //         }
+    //         if (rowHasContent) {
+    //             maxRow++
+    //             if (rowCols > maxCols) maxCols = rowCols
+    //         }
+    //     }
+    //
+    //     currentMaxColumns = maxCols || 1
+    //     currentMaxRows = maxRow || 1
+    //
+    //     keypad.style.gridTemplateColumns = `repeat(${currentMaxColumns}, 1fr)`
+    // }
 
-    let currentMaxColumns = 0
-    let currentMaxRows = 0
+    let activeContextMenu: HTMLElement | null = null
 
-    function updateGridLayout() {
-        const keypad = document.getElementById('keypad')
-        if (!globalHideEmptyKeys) {
-            keypad.style.gridTemplateColumns = `repeat(${globalColumnCount}, 1fr)`
-            currentMaxColumns = globalColumnCount
-            currentMaxRows = globalRowCount
-            return
-        }
-
-        let maxCols = 0
-        let maxRow = 0
-        for (let row = 0; row < globalRowCount; row++) {
-            let rowHasContent = false
-            let rowCols = 0
-            for (let col = 0; col < globalColumnCount; col++) {
-                const index = row * globalColumnCount + col
-                const keyEl = keyElements[index]
-                if (keyEl && keyEl.style.display !== 'none') {
-                    rowHasContent = true
-                    rowCols++
-                }
-            }
-            if (rowHasContent) {
-                maxRow++
-                if (rowCols > maxCols) maxCols = rowCols
-            }
-        }
-
-        currentMaxColumns = maxCols || 1
-        currentMaxRows = maxRow || 1
-
-        keypad.style.gridTemplateColumns = `repeat(${currentMaxColumns}, 1fr)`
-    }
-
-    let activeContextMenu = null
-
-    function showContextMenu(e, keyIndex) {
+    function showContextMenu(e: MouseEvent, keyIndex: number) {
         e.preventDefault()
 
         // Remove existing menu if one is already open
@@ -745,7 +749,8 @@ const _init = () => {
         menu.querySelectorAll('.menu-item').forEach((item) => {
             item.addEventListener('click', (evt) => {
                 evt.stopPropagation()
-                const action = evt.target.getAttribute('data-action')
+                const el = evt.target as HTMLElement
+                const action = el.getAttribute('data-action')
                 handleAction(action)
             })
         })
@@ -754,8 +759,8 @@ const _init = () => {
         setTimeout(() => {
             document.addEventListener(
                 'mousedown',
-                function docClickOutside(e) {
-                    if (!menu.contains(e.target)) {
+                function docClickOutside(evt) {
+                    if (!menu.contains(evt.target as HTMLElement)) {
                         closeContextMenu()
                         document.removeEventListener('mousedown', docClickOutside)
                     }
@@ -765,7 +770,7 @@ const _init = () => {
         }, 10)
     }
 
-    function refreshKey(deviceId, keyIndex) {
+    function refreshKey(deviceId: string, keyIndex) {
         window.electronAPI.invoke('getKeyConfig', { deviceId, keyIndex }).then((keyConfig) => {
             const keyElement = keyElements[keyIndex]
             if (!keyElement) return
@@ -779,8 +784,8 @@ const _init = () => {
 
             // Rebind mousedown event
             keyElement.replaceWith(keyElement.cloneNode(true))
-            const newKeyElement = document.querySelector(`[data-index="${keyIndex}"]`)
-            keyElements[keyIndex] = newKeyElement
+            const newKeyElement = document.querySelector(`[data-index="${keyIndex}"]`)!
+            keyElements[keyIndex] = newKeyElement as HTMLElement
             bindKeyEvents(newKeyElement, keyIndex, keyConfig)
 
             const state = keyStates.get(deviceId)?.get(keyIndex)
@@ -812,7 +817,7 @@ const _init = () => {
                     const deltaX = moveEvent.clientX - lastX
                     accumulatedDeltaX += deltaX
 
-                    let direction = null
+                    let direction: ('rotateRight' | 'rotateLeft') | null = null
                     while (Math.abs(accumulatedDeltaX) >= stepSize) {
                         direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
                         sendKeyPress(i, direction)
@@ -865,8 +870,8 @@ const _init = () => {
     }
 
     // Global listener to close the menu when clicking anywhere else
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.context-menu')) {
+    document.addEventListener('click', (evt) => {
+        if (!(evt.target as HTMLElement).closest('.context-menu')) {
             closeContextMenu()
         }
     })
@@ -938,7 +943,7 @@ const _init = () => {
 
     window.electronAPI.onUpdateBackground((_, data) => {
         console.log('Updating background:', data)
-        const keypad = document.getElementById('keypad')
+        const keypad = document.getElementById('keypad')!
         keypad.style.backgroundColor = hexToRgba(data.backgroundColor, data.backgroundOpacity)
     })
 
@@ -948,32 +953,32 @@ const _init = () => {
     })
 
     // Handle key events from Companion
-    window.electronAPI.onDraw((event, keyObj) => {
+    window.electronAPI.onDraw((_event, keyObj) => {
         if (keyObj.deviceId !== deviceId) return
 
         if (!keyStates.has(keyObj.deviceId)) {
             keyStates.set(keyObj.deviceId, new Map())
         }
 
-        keyStates.get(keyObj.deviceId).set(keyObj.keyIndex, keyObj)
+        keyStates.get(keyObj.deviceId)!.set(keyObj.keyIndex, keyObj)
         processKey(keyObj)
     })
 
     // Handle brightness
-    window.electronAPI.onBrightness((event, brightness) => {
+    window.electronAPI.onBrightness((_event, brightness) => {
         adjustBrightness(brightness)
     })
 
     // Close button
-    document.getElementById('closeButton').addEventListener('click', () => {
+    document.getElementById('closeButton')!.addEventListener('click', () => {
         window.electronAPI.invoke('closeKeypad', deviceId) // Send deviceId so main process knows which to close
     })
 
     function processKey(keyObj) {
         console.log('Processing key:', keyObj)
 
-        document.getElementById('loadingMessage').style.display = 'none'
-        document.getElementById('keypad').style.display = 'grid'
+        document.getElementById('loadingMessage')!.style.display = 'none'
+        document.getElementById('keypad')!.style.display = 'grid'
 
         const keyIndex = keyObj.keyIndex
         const bitmap = keyObj.imageBase64
@@ -991,7 +996,7 @@ const _init = () => {
         }
 
         const textSpan = keyElement.querySelector('span')
-        let isEmpty = !bitmap && !color && !text
+        // let isEmpty = !bitmap && !color && !text
 
         if (globalHideEmptyKeys) {
             if (keyObj.imageBase64 || keyObj.text || keyObj.color) {
@@ -1038,8 +1043,8 @@ const _init = () => {
 
     // Brightness
     function adjustBrightness(brightness) {
-        const keypad = document.getElementById('keypad')
-        keypad.style.opacity = brightness / 100
+        const keypad = document.getElementById('keypad')!
+        keypad.style.opacity = String(brightness / 100)
     }
 
     // Bitmap Rendering: Accepts base64-encoded raw RGB bitmap
@@ -1092,37 +1097,21 @@ const _init = () => {
             sendKeyPress(keyIndex, 'up')
         })
         activeKeys.clear()
-    })
+    });
 
     window.addEventListener('blur', () => {
         activeKeys.forEach((keyIndex) => {
             sendKeyPress(keyIndex, 'up')
         })
         activeKeys.clear()
-    })
+    });
+
+    (_init as any).done = true;
 }
 
 function WindowContainer() {
-    const logoOverlayStyle: React.CSSProperties = {
-        display: 'none',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        pointerEvents: 'none',
-        backgroundColor: 'transparent',
-    }
-
-    const [initialized, setInitialized] = useState(false);
-
     useEffect(() => {
-        if (!initialized) {
-            _init();
-            setInitialized(true);
-        }
+        _init();
     });
 
     return (
@@ -1144,7 +1133,18 @@ function WindowContainer() {
             </div>
 
             {/* The logo overlay that shows when collapsed */}
-            <div id="logoOverlay" style={logoOverlayStyle}>
+            <div id="logoOverlay" style={{
+                display: 'none',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                pointerEvents: 'none',
+                backgroundColor: 'transparent',
+            }}>
                 <img
                     src="/assets/images/logo.png"
                     alt="ScreenDeck Logo"
