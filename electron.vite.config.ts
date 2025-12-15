@@ -1,13 +1,14 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
     main: {
         build: {
             rollupOptions: {
                 input: {
-                    index: resolve(__dirname, 'electron/main.ts'),
+                    index: resolve(__dirname, 'electron/legacy/main.ts'),
                 },
             },
         },
@@ -16,13 +17,13 @@ export default defineConfig({
         build: {
             rollupOptions: {
                 input: {
-                    index: resolve(__dirname, 'electron/preload.ts'),
+                    index: resolve(__dirname, 'electron/preload/index.ts'),
                 },
             },
         },
     },
     renderer: {
-        plugins: [react()],
+        plugins: [tailwindcss(), react()],
         root: 'src/renderer',
         publicDir: resolve(__dirname, 'static'),
         build: {

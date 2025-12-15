@@ -1,4 +1,60 @@
-window.addEventListener('DOMContentLoaded', () => {
+// @ts-nocheck
+import React, { useEffect, useState } from 'react'
+
+function injectCSS() {
+    if (injectCSS.injected) return
+
+    const styles = `
+    body {
+                font-family: sans-serif;
+                margin: 20px;
+                padding: 10px;
+            }
+
+            .device {
+                border: 1px solid #ccc;
+                padding: 10px;
+                margin-bottom: 20px;
+                border-radius: 6px;
+                background: #f9f9f9;
+            }
+
+            .device label {
+                font-weight: bold;
+                margin-bottom: 2px;
+            }
+
+            .device input {
+                width: 60px;
+                margin-right: 10px;
+            }
+
+            .device-actions {
+                margin-top: 10px;
+            }
+
+            button {
+                padding: 5px 10px;
+                margin-right: 5px;
+            }
+
+            #addDevice {
+                margin-bottom: 20px;
+                background-color: #4caf50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+            }`
+    const styleSheet = document.createElement('style')
+    styleSheet.innerText = styles
+    document.head.appendChild(styleSheet)
+
+    injectCSS.injected = true
+}
+
+const _init = () => {
+    injectCSS();
+
     const deviceList = document.getElementById('deviceList')
     const addDeviceButton = document.getElementById('addDevice')
 
@@ -29,10 +85,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 window.electronAPI.invoke('closeSettingsWindow')
             }, 1000)
         })
-
-    document.getElementById('closeButton').addEventListener('click', () => {
-        window.electronAPI.invoke('closeSettingsWindow')
-    })
 
     async function loadCompanionSettings() {
         const settings = await window.electronAPI.invoke('getSettings')
@@ -258,4 +310,48 @@ window.addEventListener('DOMContentLoaded', () => {
         await window.electronAPI.invoke('createNewDevice')
         loadDevices()
     })
-})
+}
+
+function WindowContainer() {
+    const [initialized, setInitialized] = useState(false)
+
+    useEffect(() => {
+        console.log('WindowContainer mounted')
+
+        if (!initialized) {
+            _init()
+            setInitialized(true)
+        }
+    })
+
+    return (
+        <div className="window-container">
+            <h1>ScreenDeck Settings</h1>
+            <h2>Companion Connection</h2>
+            <label htmlFor="companionIP">IP Address:</label>
+            <input type="text" id="companionIP" placeholder="127.0.0.1" style={{ width: 120 }} />
+            <label htmlFor="companionPort">Port:</label>
+            <input type="number" id="companionPort" placeholder={16622} style={{ width: 60 }} />
+            <button id="saveCompanion" style={{ width: 80 }}>
+                Save
+            </button>
+            <span id="saveStatus" style={{ marginLeft: 10, fontSize: '0.9em', color: 'green' }} />
+
+            <hr />
+
+            <button id="addDevice">+ Add New ScreenDeck</button>
+
+            <div id="deviceList"></div>
+        </div>
+    )
+}
+
+function Settings() {
+    return (
+        <>
+            <WindowContainer />
+        </>
+    )
+}
+
+export default Settings

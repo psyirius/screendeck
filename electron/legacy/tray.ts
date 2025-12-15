@@ -9,7 +9,7 @@ import {
 } from './utils'
 import { ProfilesStore } from './types'
 import { unregisterAllHotkeys } from './hotkeys'
-import trayIcon from '../assets/tray-icon.png?asset'
+import trayIcon from '../../assets/tray-icon.png?asset'
 
 let tray: Tray | null = null
 const store = new Store()
@@ -149,7 +149,7 @@ function updateTrayMenu() {
     }) as Electron.MenuItemConstructorOptions[]
 
     const profiles = store.get('profiles', {}) as ProfilesStore
-    const profileNames = Object.keys(profiles)
+    // const profileNames = Object.keys(profiles)
 
     const loadProfileMenu = Object.entries(profiles).map(([id, profile]) => ({
         label: profile.name,

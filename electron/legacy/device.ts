@@ -28,8 +28,8 @@ export function createDeviceWindow(deviceId: string) {
     const alwaysOnTop = store.get(`device.${deviceId}.alwaysOnTop`, true)
     const movable = store.get(`device.${deviceId}.movable`, false)
     const disablePress = store.get(`device.${deviceId}.disablePress`, false)
-    const autoHide = store.get(`device.${deviceId}.autoHide`, false)
-    const hideEmptyKeys = store.get(`device.${deviceId}.hideEmptyKeys`, false)
+    // const autoHide = store.get(`device.${deviceId}.autoHide`, false)
+    // const hideEmptyKeys = store.get(`device.${deviceId}.hideEmptyKeys`, false)
     const backgroundColor = store.get(`device.${deviceId}.backgroundColor`, '#000000')
     const backgroundOpacity = store.get(`device.${deviceId}.backgroundOpacity`, 0.5)
 
@@ -64,7 +64,7 @@ export function createDeviceWindow(deviceId: string) {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-        win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}?deviceId=${deviceId}`)
+        win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/?deviceId=${deviceId}`)
     } else {
         win.loadFile(path.join(__dirname, '../renderer/index.html'), {
             query: { deviceId },

@@ -10,10 +10,8 @@ import {
     createDeviceWindow,
     calculateWindowSize,
     showDeviceLabels,
-    resizeWindowForDevice,
 } from './device'
 import { is } from '@electron-toolkit/utils'
-import { join } from 'path'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -164,7 +162,12 @@ export function initializeIpcHandlers() {
         const { deviceId, keyIndex, imageBase64 } = context
 
         // Get list of current hotkeys
-        const hotkeys = []
+        const hotkeys = [] as Array<{
+            hotkey: string
+            deviceId: string
+            keyIndex: number
+            imageBase64: string | null
+        }>
         for (const [hotkey, mapping] of global.registeredHotkeys.entries()) {
             hotkeys.push({
                 hotkey,
@@ -208,9 +211,11 @@ export function initializeIpcHandlers() {
         // HMR for renderer base on electron-vite cli.
         // Load the remote URL for development or the local html file for production.
         if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-            win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/hotkeyPrompt`)
+            win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/?page=hotkeyPrompt`)
         } else {
-            win.loadFile(path.join(__dirname, '../renderer/hotkeyPrompt.html'))
+            win.loadFile(path.join(__dirname, '../renderer/index.html'), {
+                query: { page: 'hotkeyPrompt' },
+            })
         }
 
         //show dev tools
@@ -238,9 +243,9 @@ export function initializeIpcHandlers() {
 
     // Handle assignHotkey
     ipcMain.handle('assignHotkey', (_event, { deviceId, keyIndex, hotkey }) => {
-        const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
-        const x = keyIndex % columnCount
-        const y = Math.floor(keyIndex / columnCount)
+        // const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
+        // const x = keyIndex % columnCount
+        // const y = Math.floor(keyIndex / columnCount)
 
         // Register in hotkeys.ts
         const success = registerHotkey(hotkey, deviceId, keyIndex)

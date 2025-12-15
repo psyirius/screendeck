@@ -2,11 +2,11 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import Store from 'electron-store'
 import ShortUniqueId from 'short-uuid'
 import { defaultSettings } from './defaults'
-import path, { join } from 'path'
+import * as path from 'node:path'
 import { createNewDevice, showWindows } from './device'
 import { CompanionSatelliteClient } from './client'
 import { updateTrayMenu } from './tray'
-import { Profile, ProfilesStore } from './types'
+import { ProfilesStore } from './types'
 import { showNotification } from './notification'
 import { unregisterAllHotkeys } from './hotkeys'
 import { is } from '@electron-toolkit/utils'
@@ -81,7 +81,7 @@ export function createSatellite() {
         }
 
         // If this key is a registered hotkey, update its bitmap reference too
-        for (const [hotkey, mapping] of global.registeredHotkeys.entries()) {
+        for (const [_hotkey, mapping] of global.registeredHotkeys.entries()) {
             if (
                 mapping.deviceId === data.deviceId &&
                 mapping.keyIndex === data.keyIndex
@@ -178,9 +178,11 @@ export function promptForProfileName(): Promise<string | undefined> {
         // HMR for renderer base on electron-vite cli.
         // Load the remote URL for development or the local html file for production.
         if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-            promptWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/profilePrompt`)
+            promptWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/?page=profilePrompt`)
         } else {
-            promptWindow.loadFile(path.join(__dirname, '../renderer/profilePrompt.html'))
+            promptWindow.loadFile(path.join(__dirname, '../renderer/index.html'), {
+                query: { page: 'profilePrompt' },
+            })
         }
 
         promptWindow.once('ready-to-show', () => {

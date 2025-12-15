@@ -3,7 +3,6 @@ import * as path from 'path'
 import { showDeviceLabels } from './device'
 import { showDevTools } from './utils'
 import { is } from '@electron-toolkit/utils'
-import { join } from 'path'
 
 let settingsWindow: BrowserWindow | null = null
 
@@ -36,9 +35,11 @@ export default function createSettingsWindow() {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-        settingsWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/settings`)
+        settingsWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/?page=settings`)
     } else {
-        settingsWindow.loadFile(path.join(__dirname, '../renderer/settings.html'))
+        settingsWindow.loadFile(path.join(__dirname, '../renderer/index.html'), {
+            query: { page: 'settings' },
+        })
     }
 
     //show devtools
