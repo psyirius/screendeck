@@ -28,7 +28,7 @@ import {
     AlertDialogTitle,
     AlertDialogMedia,
 } from "@/components/ui/alert-dialog"
-import { IconTrash, IconDotsVertical, IconCopy, IconEye, IconEyeOff, IconAlertCircle } from '@tabler/icons-react'
+import { IconTrash, IconDotsVertical, IconCopy, IconEye, IconEyeOff, IconAlertCircle, IconLayout2 } from '@tabler/icons-react'
 import { Device } from '@/types'
 
 const CompanionSettings = ({ ip, port, onSave }) => {
@@ -169,8 +169,12 @@ const DeviceAccordionItem = ({ device, onUpdate, onDelete, onDuplicate }) => {
                                     <DropdownMenuItem
                                         className="text-destructive focus:text-destructive"
                                         onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowDeleteDialog(true);
+                                            if (e.shiftKey) {
+                                                onDelete(device.deviceId);
+                                            } else {
+                                                e.stopPropagation();
+                                                setShowDeleteDialog(true);
+                                            }
                                         }}
                                     >
                                         <IconTrash size={16} className="mr-2" />
@@ -179,11 +183,10 @@ const DeviceAccordionItem = ({ device, onUpdate, onDelete, onDuplicate }) => {
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
-                            {/* TODO: make it destructive */}
                             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogMedia>
+                                        <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
                                             <IconTrash />
                                         </AlertDialogMedia>
                                         <AlertDialogTitle>Delete Device?</AlertDialogTitle>
@@ -193,8 +196,9 @@ const DeviceAccordionItem = ({ device, onUpdate, onDelete, onDuplicate }) => {
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogCancel variant="ghost">Cancel</AlertDialogCancel>
                                         <AlertDialogAction
+                                            variant="destructive"
                                             onClick={() => onDelete(device.deviceId)}
                                         >
                                             Delete
@@ -276,9 +280,9 @@ const DeviceAccordionItem = ({ device, onUpdate, onDelete, onDuplicate }) => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="flex items-center space-x-2">
-                            {/* Functionality moved to menu, but keeping visible switch for clarity if desired, or removing? 
-                                 User said "move... to that menu" for delete, but for show/hide they said "add... in that menu". 
-                                 I'll keep the switch for visibility but the menu also toggles it. 
+                            {/* Functionality moved to menu, but keeping visible switch for clarity if desired, or removing?
+                                 User said "move... to that menu" for delete, but for show/hide they said "add... in that menu".
+                                 I'll keep the switch for visibility but the menu also toggles it.
                              */}
                             <Switch id={`enabled-${device.deviceId}`} checked={config.enabled ?? true} onCheckedChange={(c) => handleChange('enabled', c)} />
                             <Label htmlFor={`enabled-${device.deviceId}`}>Enabled</Label>
@@ -371,6 +375,7 @@ const Settings = () => {
     const handleAddDevice = async () => {
         await window.electronAPI.invoke('createNewDevice')
         await refreshData()
+        // expand newly created device?
     }
 
     const handleDuplicateDevice = async (deviceId: string) => {
@@ -408,20 +413,29 @@ const Settings = () => {
     }
 
     return (
-        <div className="p-8 max-w-5xl mx-auto font-sans text-foreground">
-            <div className="flex justify-between items-center mb-8 border-b pb-4 border-border">
-                <h1 className="text-3xl font-bold">
-                    ScreenDeck Configuration
-                </h1>
+        <div className="h-screen flex flex-col p-8 max-w-5xl mx-auto font-sans text-foreground overflow-hidden">
+            <div className="flex-none flex items-center gap-4 mb-8 border-b pb-6 border-border">
+                {/* <div className="flex items-center justify-center p-3 rounded-xl bg-linear-to-br from-primary to-primary/80 shadow-lg text-primary-foreground">
+                    <IconLayout2 size={32} stroke={1.5} />
+                </div> */}
+                <img src="/assets/images/logo.png" alt="ScreenDeck Logo" className="w-12 h-12" />
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">
+                        ScreenDeck
+                    </h1>
+                    <p className="text-muted-foreground text-sm font-medium">
+                        Settings
+                    </p>
+                </div>
             </div>
 
-            <Tabs defaultValue="devices" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-8">
+            <Tabs defaultValue="devices" className="flex-1 flex flex-col min-h-0 w-full">
+                <TabsList className="flex-none grid w-full grid-cols-2 mb-8">
                     <TabsTrigger value="devices">Devices</TabsTrigger>
                     <TabsTrigger value="connection">Connection</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="connection">
+                <TabsContent value="connection" className="flex-none">
                     <CompanionSettings
                         ip={companionSettings.ip}
                         port={companionSettings.port}
@@ -429,8 +443,8 @@ const Settings = () => {
                     />
                 </TabsContent>
 
-                <TabsContent value="devices">
-                    <div className="mb-6 p-6 rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col items-center justify-center gap-4">
+                <TabsContent value="devices" className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-none mb-6 p-6 rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col items-center justify-center gap-4">
                         <div className="text-center">
                             <h3 className="text-lg font-semibold">Manage Devices</h3>
                             <p className="text-sm text-muted-foreground">Configure your virtual stream decks below.</p>
@@ -441,22 +455,24 @@ const Settings = () => {
                     </div>
 
                     {devices.length === 0 ? (
-                        <div className="text-center p-16 border-2 border-dashed border-muted rounded-xl bg-muted/20 text-muted-foreground mt-8">
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-16 border-2 border-dashed border-muted rounded-xl bg-muted/20 text-muted-foreground mt-8">
                             <p className="mb-2 text-xl font-medium">No devices configured.</p>
                             <p className="text-sm">Click "Add New Device" above to get started.</p>
                         </div>
                     ) : (
-                        <Accordion type="single" className="w-full flex flex-col gap-4">
-                            {devices.map((dev) => (
-                                <DeviceAccordionItem
-                                    key={dev.deviceId}
-                                    device={dev}
-                                    onUpdate={handleUpdateDevice}
-                                    onDelete={handleDeleteDevice}
-                                    onDuplicate={handleDuplicateDevice}
-                                />
-                            ))}
-                        </Accordion>
+                        <div className="flex-1 overflow-y-auto min-h-0 pr-2">
+                            <Accordion type="single" className="w-full flex flex-col gap-4 pb-8">
+                                {devices.map((dev) => (
+                                    <DeviceAccordionItem
+                                        key={dev.deviceId}
+                                        device={dev}
+                                        onUpdate={handleUpdateDevice}
+                                        onDelete={handleDeleteDevice}
+                                        onDuplicate={handleDuplicateDevice}
+                                    />
+                                ))}
+                            </Accordion>
+                        </div>
                     )}
                 </TabsContent>
             </Tabs>

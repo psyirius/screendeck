@@ -20,8 +20,8 @@ export default function createSettingsWindow() {
     }
 
     settingsWindow = new BrowserWindow({
-        width: 500,
-        height: 600,
+        width: 520,
+        height: 680,
         alwaysOnTop: true,
         // resizable: false,
         title: 'Settings',

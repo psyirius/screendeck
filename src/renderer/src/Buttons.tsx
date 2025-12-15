@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react'
 
 // --- Styles ---
-// In a real app we might move this to a CSS file, but keeping it here for self-containment as requested.
 const styles = `
     /* Allow the main body area to be draggable */
     body {
@@ -33,6 +32,7 @@ const styles = `
         padding: 20px;
         background: rgba(0, 0, 0, 0.5);
         border-radius: 8px;
+        /*backdrop-filter: blur(10px);*/
     }
 
     #keypad {

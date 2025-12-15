@@ -309,6 +309,7 @@ export function initializeIpcHandlers() {
         const deviceIds = store.get('deviceIds', []) as string[]
         return deviceIds.map((id) => ({
             deviceId: id,
+            name: store.get(`device.${id}.name`, ''),
             columnCount: store.get(`device.${id}.columnCount`, 8),
             rowCount: store.get(`device.${id}.rowCount`, 4),
             bitmapSize: store.get(`device.${id}.bitmapSize`, 72),

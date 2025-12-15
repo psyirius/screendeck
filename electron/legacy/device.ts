@@ -7,7 +7,9 @@ import { showDevTools } from './utils'
 import { updateTrayMenu } from './tray'
 import { is } from '@electron-toolkit/utils'
 
-const store = new Store<SettingsType>({ defaults: defaultSettings })
+const store = new Store<SettingsType>({
+    defaults: defaultSettings
+});
 
 export function createDeviceWindows() {
     const deviceIds = store.get('deviceIds') as string[] | undefined
@@ -22,6 +24,7 @@ export function createDeviceWindow(deviceId: string) {
     console.log(`Creating window for deviceId: ${deviceId}`)
 
     //get properties by deviceId
+    const deviceName = store.get(`device.${deviceId}.name`, 'ScreenDeck Device')
     const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
     const rowCount = store.get(`device.${deviceId}.rowCount`, 4)
     const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
@@ -53,7 +56,7 @@ export function createDeviceWindow(deviceId: string) {
         skipTaskbar: true,
         movable: movable,
         hasShadow: false,
-        title: `ScreenDeck - ${deviceId}`,
+        title: `ScreenDeck - ${deviceId} (${deviceName})`,
         webPreferences: {
             preload: path.join(__dirname, '../preload/index.js'),
             contextIsolation: true, // Enable context isolation for security
@@ -151,6 +154,7 @@ export function createNewDevice(): string {
     const newDeviceId = generateDeviceId()
 
     // Also store default per-device settings
+    store.set(`device.${newDeviceId}.name`, '') // Default to empty name
     store.set(`device.${newDeviceId}.columnCount`, 8) // Default 8x4 layout
     store.set(`device.${newDeviceId}.rowCount`, 4) // Default 8x4 layout
     store.set(`device.${newDeviceId}.bitmapSize`, 72) // Default bitmap size
