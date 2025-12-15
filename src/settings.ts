@@ -31,6 +31,8 @@ export default function createSettingsWindow() {
         },
     })
 
+    settingsWindow.removeMenu();
+
     settingsWindow.loadFile(path.join(__dirname, '../public/settings.html'))
 
     //show devtools
