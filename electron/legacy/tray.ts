@@ -106,6 +106,7 @@ function updateTrayMenu() {
                                 win.show()
                                 store.set(`device.${deviceId}.hidden`, false)
                             }
+                            // TODO: IPC
                             win.webContents.send('identify')
                             updateTrayMenu()
                         }
@@ -139,6 +140,7 @@ function updateTrayMenu() {
 
                         const win = globalContext.deviceWindows.get(deviceId)
                         if (win) {
+                            // TODO: IPC
                             win.webContents.send('disablePress', newState)
                         }
 

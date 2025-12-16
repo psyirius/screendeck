@@ -96,6 +96,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      commander:
+        specifier: ^14.0.2
+        version: 14.0.2
       electron:
         specifier: ^39.2.7
         version: 39.2.7

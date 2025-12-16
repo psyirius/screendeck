@@ -215,15 +215,13 @@ export async function initializeWebApi() {
                     false
                 )
                 const newValue = !current
-                store.set(
-                    `device.${deviceId}.key.${keyIndex}.isEncoder`,
-                    newValue
-                )
+                store.set(`device.${deviceId}.key.${keyIndex}.isEncoder`, newValue)
                 return newValue
             })
 
             handle('setBrightness', (brightness) => {
                 globalContext.deviceWindows?.forEach((win) => {
+                    // TODO: IPC
                     win.webContents.send('brightness', brightness)
                 })
             })
@@ -465,34 +463,19 @@ export async function initializeWebApi() {
                     if (config.movable !== undefined)
                         win.setMovable(Boolean(config.movable))
                     if (config.disablePress !== undefined)
-                        win.webContents.send(
-                            'disablePress',
-                            Boolean(config.disablePress)
-                        )
+                        // TODO: IPC
+                        win.webContents.send('disablePress', Boolean(config.disablePress))
                     if (config.autoHide !== undefined)
-                        win.webContents.send(
-                            'autoHide',
-                            Boolean(config.autoHide)
-                        )
+                        // TODO: IPC
+                        win.webContents.send('autoHide', Boolean(config.autoHide))
                     if (config.hideEmptyKeys !== undefined)
-                        win.webContents.send(
-                            'hideEmptyKeys',
-                            Boolean(config.hideEmptyKeys)
-                        )
+                        // TODO: IPC
+                        win.webContents.send('hideEmptyKeys', Boolean(config.hideEmptyKeys))
 
                     if (needsDeviceUpdate) {
-                        const columnCount = store.get(
-                            `device.${deviceId}.columnCount`,
-                            8
-                        )
-                        const rowCount = store.get(
-                            `device.${deviceId}.rowCount`,
-                            4
-                        )
-                        const bitmapSize = store.get(
-                            `device.${deviceId}.bitmapSize`,
-                            72
-                        )
+                        const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
+                        const rowCount = store.get(`device.${deviceId}.rowCount`, 4)
+                        const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
 
                         const { width, height } = calculateWindowSize(
                             columnCount,
@@ -504,30 +487,18 @@ export async function initializeWebApi() {
 
                         if (globalContext.satelliteClient) {
                             globalContext.satelliteClient.removeDevice(deviceId)
-                            globalContext.satelliteClient.addDevice(
-                                deviceId,
-                                'ScreenDeck',
-                                {
-                                    columnCount: store.get(
-                                        `device.${deviceId}.columnCount`,
-                                        8
-                                    ),
-                                    rowCount: store.get(
-                                        `device.${deviceId}.rowCount`,
-                                        4
-                                    ),
-                                    bitmapSize: store.get(
-                                        `device.${deviceId}.bitmapSize`,
-                                        72
-                                    ),
-                                    colours: true,
-                                    text: true,
-                                    brightness: true,
-                                    pincodeMap: null,
-                                }
-                            )
+                            globalContext.satelliteClient.addDevice(deviceId, 'ScreenDeck', {
+                                columnCount: store.get(`device.${deviceId}.columnCount`, 8),
+                                rowCount: store.get(`device.${deviceId}.rowCount`, 4),
+                                bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
+                                colours: true,
+                                text: true,
+                                brightness: true,
+                                pincodeMap: null,
+                            })
                         }
 
+                        // TODO: IPC
                         win.webContents.send('rebuildGrid', {
                             columnCount,
                             rowCount,
@@ -547,6 +518,7 @@ export async function initializeWebApi() {
                             0.5
                         )
 
+                        // TODO: IPC
                         win.webContents.send('updateBackground', {
                             backgroundColor,
                             backgroundOpacity,

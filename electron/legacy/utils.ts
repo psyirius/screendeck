@@ -99,6 +99,7 @@ export function createSatellite() {
         const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
             //resizeWindowForDevice(data.deviceId)
+            // TODO: IPC
             win.webContents.send('draw', data)
         }
     })
@@ -106,6 +107,7 @@ export function createSatellite() {
     globalContext.satelliteClient.on('clearDeck', (data) => {
         const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
+            // TODO: IPC
             win.webContents.send('clearDeck')
         }
     })
@@ -113,6 +115,7 @@ export function createSatellite() {
     globalContext.satelliteClient.on('brightness', (data) => {
         const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
+            // TODO: IPC
             win.webContents.send('brightness', data.percent)
         }
     })
@@ -120,6 +123,7 @@ export function createSatellite() {
     globalContext.satelliteClient.on('lockedState', (data) => {
         const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
+            // TODO: IPC
             win.webContents.send('lockedState', data)
         }
     })
@@ -128,8 +132,11 @@ export function createSatellite() {
     globalContext.satelliteClient
         .connect({
             mode: 'tcp',
-            host: store.get('companionIP', '127.0.0.1') as string,
-            port: store.get('companionPort', 16622) as number,
+            host: store.get('companionIP', '127.0.0.1') as string, // FIXME: use from settings
+            port: store.get('companionPort', 16622) as number, // FIXME: use from settings
+        })
+        .then(() => {
+            console.log('[Satellite] Connection established successfully')
         })
         .catch((err) => {
             console.error(`[Satellite] Connection failed: ${err}`)
@@ -185,6 +192,8 @@ export function promptForProfileName(): Promise<string | undefined> {
         })
 
         // Listen for the input from the renderer
+        // TODO: IPC
+        // TODO: move this to a more central ipc handler
         ipcMain.once('profileNameResult', (_event, result) => {
             resolve(result)
             promptWindow.close()

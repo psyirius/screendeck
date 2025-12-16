@@ -76,11 +76,13 @@ export function createDeviceWindow(deviceId: string) {
     }
 
     win.webContents.on('did-finish-load', () => {
+        // TODO: IPC
         win.webContents.send('updateBackground', {
             backgroundColor,
             backgroundOpacity,
         })
 
+        // TODO: IPC
         win.webContents.send('disablePress', disablePress)
     })
 
@@ -96,24 +98,29 @@ export function createDeviceWindow(deviceId: string) {
 
     // Handle window events
     win.on('focus', () => {
+        // TODO: IPC
         win.webContents.send('windowFocused', { deviceId })
         updateTrayMenu()
     })
     win.on('blur', () => {
+        // TODO: IPC
         win.webContents.send('windowBlurred', { deviceId })
         updateTrayMenu()
     })
     win.on('close', (event) => {
         event.preventDefault() // Prevent default close behavior
         win.hide() // Hide the window instead of closing it
+        // TODO: IPC
         win.webContents.send('windowClosed', { deviceId })
         updateTrayMenu()
     })
     win.on('show', () => {
+        // TODO: IPC
         win.webContents.send('windowShown', { deviceId })
         updateTrayMenu()
     })
     win.on('hide', () => {
+        // TODO: IPC
         win.webContents.send('windowHidden', { deviceId })
         updateTrayMenu()
     })
@@ -135,6 +142,7 @@ export function showWindows() {
         if (!hidden) {
             win.show()
             win.focus()
+            // TODO: IPC
             win.webContents.send('windowShown', { deviceId })
         } else {
             win.hide()
@@ -146,6 +154,7 @@ export function showWindows() {
 // Show or hide device labels in all windows
 export function showDeviceLabels(show: boolean) {
     globalContext.deviceWindows.forEach((win, deviceId) => {
+        // TODO: IPC
         win.webContents.send('showDeviceLabel', { deviceId, show })
     })
 }

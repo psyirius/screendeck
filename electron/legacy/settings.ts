@@ -28,6 +28,7 @@ export default function createSettingsWindow() {
         title: 'Settings',
         webPreferences: {
             preload: path.join(__dirname, '../preload/index.js'),
+            additionalArguments: ['--xca-debug', '--xca-page=settings'], // Pass page argument to preload
         },
     })
 
@@ -36,10 +37,14 @@ export default function createSettingsWindow() {
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-        settingsWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/?page=settings`)
+        settingsWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/?page=settings`).then(() => {
+            console.log('Settings window loaded in development mode')
+        })
     } else {
         settingsWindow.loadFile(path.join(__dirname, '../renderer/index.html'), {
             query: { page: 'settings' },
+        }).then(() => {
+            console.log('Settings window loaded in production mode')
         })
     }
 

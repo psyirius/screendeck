@@ -17,6 +17,7 @@ import { globalContext } from './global'
 const store = new Store({ defaults: defaultSettings })
 
 export function initializeIpcHandlers() {
+    // TODO: IPC
     ipcMain.handle('getDeviceConfig', (_event, deviceId) => {
         const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
         const rowCount = store.get(`device.${deviceId}.rowCount`, 4)
@@ -26,14 +27,8 @@ export function initializeIpcHandlers() {
         const disablePress = store.get(`device.${deviceId}.disablePress`, false)
         const autoHide = store.get(`device.${deviceId}.autoHide`, false)
         const hideEmptyKeys = store.get(`device.${deviceId}.hideEmptyKeys`, false)
-        const backgroundColor = store.get(
-            `device.${deviceId}.backgroundColor`,
-            '#000000'
-        )
-        const backgroundOpacity = store.get(
-            `device.${deviceId}.backgroundOpacity`,
-            0.5
-        )
+        const backgroundColor = store.get(`device.${deviceId}.backgroundColor`, '#000000')
+        const backgroundOpacity = store.get(`device.${deviceId}.backgroundOpacity`, 0.5)
 
         return {
             columnCount,
@@ -49,6 +44,7 @@ export function initializeIpcHandlers() {
         }
     })
 
+    // TODO: IPC
     ipcMain.handle('getKeypadBounds', (_event, deviceId) => {
         const win = globalContext.deviceWindows?.get(deviceId)
         if (win) {
@@ -59,20 +55,19 @@ export function initializeIpcHandlers() {
         return null
     })
 
-    ipcMain.handle(
-        'resizeKeypadWindow',
-        (_event, { deviceId, width, height }) => {
-            const win = globalContext.deviceWindows?.get(deviceId)
-            if (win) {
-                win.setBounds({
-                    ...win.getBounds(),
-                    width,
-                    height,
-                })
-            }
+    // TODO: IPC
+    ipcMain.handle('resizeKeypadWindow', (_event, { deviceId, width, height }) => {
+        const win = globalContext.deviceWindows?.get(deviceId)
+        if (win) {
+            win.setBounds({
+                ...win.getBounds(),
+                width,
+                height,
+            })
         }
-    )
+    })
 
+    // TODO: IPC
     ipcMain.handle('closeKeypad', (_event, deviceId) => {
         const win = globalContext.deviceWindows?.get(deviceId)
         if (win) {
@@ -84,6 +79,7 @@ export function initializeIpcHandlers() {
     })
 
     // Handle keyPress events (from renderer)
+    // TODO: IPC
     ipcMain.on('keyPress', (_event, { deviceId, x, y, action }) => {
         if (!globalContext.satelliteClient) return
 
@@ -104,55 +100,47 @@ export function initializeIpcHandlers() {
         }
     })
 
+    // TODO: IPC
     ipcMain.handle('getKeyConfig', (_event, { deviceId, keyIndex }) => {
         return {
-            isEncoder: store.get(
-                `device.${deviceId}.key.${keyIndex}.isEncoder`,
-                false
-            ),
-            stepSize: store.get(
-                `device.${deviceId}.key.${keyIndex}.stepSize`,
-                10
-            ),
+            isEncoder: store.get(`device.${deviceId}.key.${keyIndex}.isEncoder`, false),
+            stepSize: store.get(`device.${deviceId}.key.${keyIndex}.stepSize`, 10),
         }
     })
 
-    ipcMain.handle(
-        'updateKeyConfig',
-        (_event, { deviceId, keyIndex, config }) => {
-            const isEncoder = config.isEncoder ?? false
-            const stepSize = config.stepSize ?? 10
-            store.set(`device.${deviceId}.key.${keyIndex}.isEncoder`, isEncoder)
-            store.set(`device.${deviceId}.key.${keyIndex}.stepSize`, stepSize)
-        }
-    )
+    // TODO: IPC
+    ipcMain.handle('updateKeyConfig', (_event, { deviceId, keyIndex, config }) => {
+        const isEncoder = config.isEncoder ?? false
+        const stepSize = config.stepSize ?? 10
+        store.set(`device.${deviceId}.key.${keyIndex}.isEncoder`, isEncoder)
+        store.set(`device.${deviceId}.key.${keyIndex}.stepSize`, stepSize)
+    })
 
+    // TODO: IPC
     ipcMain.handle('toggleEncoder', (_event, { deviceId, keyIndex }) => {
-        const current = store.get(
-            `device.${deviceId}.key.${keyIndex}.isEncoder`,
-            false
-        )
+        const current = store.get(`device.${deviceId}.key.${keyIndex}.isEncoder`, false)
         const newValue = !current
         store.set(`device.${deviceId}.key.${keyIndex}.isEncoder`, newValue)
         return newValue
     })
 
     // Handle brightness request from renderer (optional)
+    // TODO: IPC
     ipcMain.handle('setBrightness', (_event, brightness) => {
         globalContext.deviceWindows?.forEach((win) => {
+            // TODO: IPC
             win.webContents.send('brightness', brightness)
         })
     })
 
     //HOTKEYS
-    ipcMain.handle(
-        'setHotkeyContext',
-        (_event, { deviceId, keyIndex, imageBase64 }) => {
-            globalContext.hotkeyContext = { deviceId, keyIndex, imageBase64 }
-        }
-    )
+    // TODO: IPC
+    ipcMain.handle('setHotkeyContext', (_event, { deviceId, keyIndex, imageBase64 }) => {
+        globalContext.hotkeyContext = { deviceId, keyIndex, imageBase64 }
+    })
 
     // Get key context for the hotkey prompt
+    // TODO: IPC
     ipcMain.handle('getHotkeyContext', (_event) => {
         const context = globalContext.hotkeyContext // deviceId, keyIndex, imageBase64
 
@@ -186,6 +174,7 @@ export function initializeIpcHandlers() {
         }
     })
 
+    // TODO: IPC
     ipcMain.handle('openHotkeyPrompt', () => {
         if (globalContext.hotkeyPromptWindow && !globalContext.hotkeyPromptWindow.isDestroyed()) {
             globalContext.hotkeyPromptWindow.focus()
@@ -233,6 +222,7 @@ export function initializeIpcHandlers() {
         })
     })
 
+    // TODO: IPC
     ipcMain.handle('closeHotkeyPrompt', () => {
         if (globalContext.hotkeyPromptWindow && !globalContext.hotkeyPromptWindow.isDestroyed()) {
             globalContext.hotkeyPromptWindow.close()
@@ -240,6 +230,7 @@ export function initializeIpcHandlers() {
     })
 
     // Handle assignHotkey
+    // TODO: IPC
     ipcMain.handle('assignHotkey', (_event, { deviceId, keyIndex, hotkey }) => {
         // const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
         // const x = keyIndex % columnCount
@@ -249,10 +240,10 @@ export function initializeIpcHandlers() {
         const success = registerHotkey(hotkey, deviceId, keyIndex)
         if (success) {
             // Save to store
-            const keyConfig = store.get(
-                `device.${deviceId}.keys`,
-                {}
-            ) as Record<number, { hotkey?: string }>
+            const keyConfig = store.get(`device.${deviceId}.keys`, {}) as Record<
+                number,
+                { hotkey?: string }
+            >
             keyConfig[keyIndex] = { ...(keyConfig[keyIndex] || {}), hotkey }
             store.set(`device.${deviceId}.keys`, keyConfig)
         }
@@ -260,6 +251,7 @@ export function initializeIpcHandlers() {
         return success
     })
 
+    // TODO: IPC
     ipcMain.handle('clearHotkey', (_event, { deviceId, keyIndex, hotkey }) => {
         unregisterHotkey(hotkey)
 
@@ -275,11 +267,13 @@ export function initializeIpcHandlers() {
         return true
     })
 
+    // TODO: IPC
     ipcMain.handle('showDeviceLabels', (_event, show) => {
         showDeviceLabels(show)
     })
 
     //SETTINGS
+    // TODO: IPC
     ipcMain.handle('createNewDevice', () => {
         const newDeviceId = createNewDevice()
 
@@ -303,6 +297,7 @@ export function initializeIpcHandlers() {
         return newDeviceId
     })
 
+    // TODO: IPC
     ipcMain.handle('getAllDevices', () => {
         const deviceIds = store.get('deviceIds', []) as string[]
         return deviceIds.map((id) => ({
@@ -316,14 +311,12 @@ export function initializeIpcHandlers() {
             disablePress: store.get(`device.${id}.disablePress`, false),
             autoHide: store.get(`device.${id}.autoHide`, false),
             hideEmptyKeys: store.get(`device.${id}.hideEmptyKeys`, false),
-            backgroundColor: store.get(
-                `device.${id}.backgroundColor`,
-                '#000000'
-            ),
+            backgroundColor: store.get(`device.${id}.backgroundColor`, '#000000'),
             backgroundOpacity: store.get(`device.${id}.backgroundOpacity`, 0.5),
         }))
     })
 
+    // TODO: IPC
     ipcMain.handle('updateDeviceConfig', (_event, { deviceId, config }) => {
         let needsDeviceUpdate = false
 
@@ -361,39 +354,26 @@ export function initializeIpcHandlers() {
                 win.setMovable(Boolean(config.movable))
             }
             if (config.disablePress !== undefined) {
-                win.webContents.send(
-                    'disablePress',
-                    Boolean(config.disablePress)
-                )
+                // TODO: IPC
+                win.webContents.send('disablePress', Boolean(config.disablePress))
             }
             if (config.autoHide !== undefined) {
+                // TODO: IPC
                 win.webContents.send('autoHide', Boolean(config.autoHide))
             }
             if (config.hideEmptyKeys !== undefined) {
                 //resizeWindowForDevice(deviceId)
-                win.webContents.send(
-                    'hideEmptyKeys',
-                    Boolean(config.hideEmptyKeys)
-                )
+                // TODO: IPC
+                win.webContents.send('hideEmptyKeys', Boolean(config.hideEmptyKeys))
             }
 
             // Resize window if columnCount/rowCount/bitmapSize changed
             if (needsDeviceUpdate) {
-                const columnCount = store.get(
-                    `device.${deviceId}.columnCount`,
-                    8
-                )
+                const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
                 const rowCount = store.get(`device.${deviceId}.rowCount`, 4)
-                const bitmapSize = store.get(
-                    `device.${deviceId}.bitmapSize`,
-                    72
-                )
+                const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
 
-                const { width, height } = calculateWindowSize(
-                    columnCount,
-                    rowCount,
-                    bitmapSize
-                )
+                const { width, height } = calculateWindowSize(columnCount, rowCount, bitmapSize)
 
                 win.setSize(width, height)
 
@@ -411,6 +391,7 @@ export function initializeIpcHandlers() {
                     })
                 }
 
+                // TODO: IPC
                 win.webContents.send('rebuildGrid', {
                     columnCount,
                     rowCount,
@@ -418,24 +399,16 @@ export function initializeIpcHandlers() {
             }
 
             // Update background color/opacity *live*
-            if (
-                config.backgroundColor !== undefined ||
-                config.backgroundOpacity !== undefined
-            ) {
-                const backgroundColor = store.get(
-                    `device.${deviceId}.backgroundColor`,
-                    '#000000'
-                )
-                const backgroundOpacity = store.get(
-                    `device.${deviceId}.backgroundOpacity`,
-                    0.5
-                )
+            if (config.backgroundColor !== undefined || config.backgroundOpacity !== undefined) {
+                const backgroundColor = store.get(`device.${deviceId}.backgroundColor`, '#000000')
+                const backgroundOpacity = store.get(`device.${deviceId}.backgroundOpacity`, 0.5)
 
                 console.log('Updating background color/opacity:', {
                     backgroundColor,
                     backgroundOpacity,
                 })
 
+                // TODO: IPC
                 win.webContents.send('updateBackground', {
                     backgroundColor,
                     backgroundOpacity,
@@ -448,6 +421,7 @@ export function initializeIpcHandlers() {
         updateTrayMenu()
     })
 
+    // TODO: IPC
     ipcMain.handle('deleteDevice', (_event, deviceId) => {
         let deviceIds = store.get('deviceIds', []) as string[]
         deviceIds = deviceIds.filter((id) => id !== deviceId)
@@ -475,11 +449,13 @@ export function initializeIpcHandlers() {
         console.log(`Device ${deviceId} deleted.`)
     })
 
+    // TODO: IPC
     ipcMain.handle('getSettings', () => {
         return store.store
     })
 
     // Handle saving settings
+    // TODO: IPC
     ipcMain.handle('saveSettings', (_event, newSettings) => {
         const previousIP = store.get('companionIP', '127.0.0.1')
         const previousPort = store.get('companionPort', 16622)
@@ -490,9 +466,7 @@ export function initializeIpcHandlers() {
         const newPort = newSettings.companionPort
 
         if (newIP !== previousIP || newPort !== previousPort) {
-            console.log(
-                'Companion IP or port changed, restarting connection...'
-            )
+            console.log('Companion IP or port changed, restarting connection...')
 
             if (globalContext.satelliteClient) {
                 globalContext.satelliteClient.disconnect() // Your close method for the new API
@@ -506,6 +480,7 @@ export function initializeIpcHandlers() {
         }
     })
 
+    // TODO: IPC
     ipcMain.handle('closeSettingsWindow', () => {
         const settingsWindow = globalContext.settingsWindow
         if (settingsWindow) {
@@ -514,6 +489,7 @@ export function initializeIpcHandlers() {
     })
 
     //PROFILE MANAGEMENT
+    // TODO: IPC
     ipcMain.handle('getNextProfileName', () => {
         return getNextProfileName()
     })
