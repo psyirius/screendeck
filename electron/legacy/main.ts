@@ -5,18 +5,19 @@ import { initializeDeviceIds, createSatellite } from './utils'
 import { createDeviceWindows } from './device'
 import { loadHotkeysFromStore } from './hotkeys'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
+import { globalContext } from './global'
 
 // Initialize the Companion Satellite client and device windows
 function init() {
-    global.satelliteClient = null
-    global.deviceWindows = new Map()
-    global.keyStates = new Map()
-    global.hotkeyPromptWindow = null
-    global.hotkeyContext = null
-    global.registeredHotkeys = new Map()
-    global.settingsWindow = null
+    globalContext.satelliteClient = null
+    globalContext.deviceWindows = new Map()
+    globalContext.keyStates = new Map()
+    globalContext.hotkeyPromptWindow = null
+    globalContext.hotkeyContext = null
+    globalContext.registeredHotkeys = new Map()
+    globalContext.settingsWindow = null
 
-    global.trayParentWindow = new BrowserWindow({
+    globalContext.trayParentWindow = new BrowserWindow({
         show: false,
         width: 0,
         height: 0,

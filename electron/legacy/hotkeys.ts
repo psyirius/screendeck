@@ -1,5 +1,6 @@
 import { globalShortcut } from 'electron'
 import Store from 'electron-store'
+import { globalContext } from './global'
 
 const store = new Store()
 
@@ -22,25 +23,22 @@ export function registerHotkey(
         const y = Math.floor(keyIndex / columnCount)
 
         globalShortcut.register(hotkey, () => {
-            global.satelliteClient?.keyDownXY(deviceId, x, y)
-            setTimeout(
-                () => global.satelliteClient?.keyUpXY(deviceId, x, y),
-                100
-            )
+            globalContext.satelliteClient?.keyDownXY(deviceId, x, y)
+            setTimeout(() => globalContext.satelliteClient?.keyUpXY(deviceId, x, y), 100)
         })
 
-        let imageBase64 = ''
-        const deviceMap = global.keyStates.get(deviceId)
+        // let imageBase64 = ''
+        // const deviceMap = globalState.keyStates.get(deviceId)
+        //
+        // if (deviceMap) {
+        //     const keyState = deviceMap.get(keyIndex)
+        //
+        //     if (keyState) {
+        //         imageBase64 = keyState.imageBase64 || ''
+        //     }
+        // }
 
-        if (deviceMap) {
-            const keyState = deviceMap.get(keyIndex)
-
-            if (keyState) {
-                imageBase64 = keyState.imageBase64 || ''
-            }
-        }
-
-        global.registeredHotkeys.set(hotkey, {
+        globalContext.registeredHotkeys.set(hotkey, {
             deviceId,
             keyIndex,
             imageBase64: '',
@@ -58,13 +56,13 @@ export function registerHotkey(
 export function unregisterHotkey(hotkey: string) {
     if (globalShortcut.isRegistered(hotkey)) {
         globalShortcut.unregister(hotkey)
-        global.registeredHotkeys.delete(hotkey)
+        globalContext.registeredHotkeys.delete(hotkey)
         console.log(`Unregistered hotkey: ${hotkey}`)
     }
 }
 
 export function unregisterAllHotkeysForDevice(deviceId: string) {
-    for (const [hotkey, mapping] of global.registeredHotkeys.entries()) {
+    for (const [hotkey, mapping] of globalContext.registeredHotkeys.entries()) {
         if (mapping.deviceId === deviceId) {
             unregisterHotkey(hotkey)
         }
@@ -73,7 +71,7 @@ export function unregisterAllHotkeysForDevice(deviceId: string) {
 
 export function unregisterAllHotkeys() {
     globalShortcut.unregisterAll()
-    global.registeredHotkeys.clear()
+    globalContext.registeredHotkeys.clear()
     console.log('Unregistered all hotkeys')
 }
 
@@ -82,7 +80,7 @@ export function isHotkeyConflict(
     deviceId: string,
     keyIndex: number
 ): boolean {
-    const mapping = global.registeredHotkeys.get(hotkey)
+    const mapping = globalContext.registeredHotkeys.get(hotkey)
     if (!mapping) return false
 
     // If it's already mapped to this key, no problem

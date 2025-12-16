@@ -10,11 +10,11 @@ import { ProfilesStore } from './types'
 import { showNotification } from './notification'
 import { unregisterAllHotkeys } from './hotkeys'
 import { is } from '@electron-toolkit/utils'
+import { globalContext } from './global'
 
 const store = new Store({ defaults: defaultSettings })
 
-export const showDevTools =
-    process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true'
+export const showDevTools = is.dev || (process.env.DEBUG_PROD === 'true')
 
 // Initialize the deviceIds list (runs on first app launch)
 export function initializeDeviceIds() {
@@ -32,27 +32,25 @@ export function initializeDeviceIds() {
 
 export function createSatellite() {
     // Create the CompanionSatelliteClient
-    if (global.satelliteClient?.connected) {
+    if (globalContext.satelliteClient?.connected) {
         console.log('[Satellite] Already connected, skipping initialization')
         return
     }
 
-    global.satelliteClient = new CompanionSatelliteClient({ debug: true })
+    globalContext.satelliteClient = new CompanionSatelliteClient({ debug: true })
 
     // Handle connection events
-    global.satelliteClient.on('log', (msg) => console.log(`[Satellite] ${msg}`))
-    global.satelliteClient.on('error', (err) =>
-        console.error(`[Satellite Error] ${err}`)
-    )
+    globalContext.satelliteClient.on('log', (msg) => console.log(`[Satellite] ${msg}`))
+    globalContext.satelliteClient.on('error', (err) => console.error(`[Satellite Error] ${err}`))
 
-    global.satelliteClient.on('connected', () => {
+    globalContext.satelliteClient.on('connected', () => {
         console.log('[Satellite] Connected Event Received')
         // Register devices
         setTimeout(() => {
             const deviceIds = store.get('deviceIds') as string[] | []
             for (const deviceId of deviceIds) {
                 console.log(`[Satellite] Adding device: ${deviceId}`)
-                global.satelliteClient?.addDevice(deviceId, 'ScreenDeck', {
+                globalContext.satelliteClient?.addDevice(deviceId, 'ScreenDeck', {
                     columnCount: store.get(`device.${deviceId}.columnCount`, 8),
                     rowCount: store.get(`device.${deviceId}.rowCount`, 4),
                     bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
@@ -68,7 +66,7 @@ export function createSatellite() {
         }, 500)
     })
 
-    global.satelliteClient.on('draw', (data) => {
+    globalContext.satelliteClient.on('draw', (data) => {
         console.log(`[Satellite] Draw event for device ${data.deviceId}`)
         console.log('[Satellite] Draw data:', data)
 
@@ -76,22 +74,19 @@ export function createSatellite() {
         data.imageBase64 = data.image?.toString('base64') || undefined
 
         //save to global.keyStates
-        if (!global.keyStates.has(data.deviceId)) {
-            global.keyStates.set(data.deviceId, new Map())
+        if (!globalContext.keyStates.has(data.deviceId)) {
+            globalContext.keyStates.set(data.deviceId, new Map())
         }
 
         // If this key is a registered hotkey, update its bitmap reference too
-        for (const [_hotkey, mapping] of global.registeredHotkeys.entries()) {
-            if (
-                mapping.deviceId === data.deviceId &&
-                mapping.keyIndex === data.keyIndex
-            ) {
+        for (const [_hotkey, mapping] of globalContext.registeredHotkeys.entries()) {
+            if (mapping.deviceId === data.deviceId && mapping.keyIndex === data.keyIndex) {
                 // Update the bitmap for this hotkey (optional redundancy)
                 mapping.imageBase64 = data.imageBase64 ?? ''
             }
         }
 
-        const deviceKeyStates = global.keyStates.get(data.deviceId)
+        const deviceKeyStates = globalContext.keyStates.get(data.deviceId)
         if (deviceKeyStates) {
             deviceKeyStates.set(data.keyIndex, {
                 imageBase64: data.imageBase64,
@@ -101,36 +96,36 @@ export function createSatellite() {
         }
 
         // Send the draw event to the corresponding device window
-        const win = global.deviceWindows.get(data.deviceId)
+        const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
             //resizeWindowForDevice(data.deviceId)
             win.webContents.send('draw', data)
         }
     })
 
-    global.satelliteClient.on('clearDeck', (data) => {
-        const win = global.deviceWindows.get(data.deviceId)
+    globalContext.satelliteClient.on('clearDeck', (data) => {
+        const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
             win.webContents.send('clearDeck')
         }
     })
 
-    global.satelliteClient.on('brightness', (data) => {
-        const win = global.deviceWindows.get(data.deviceId)
+    globalContext.satelliteClient.on('brightness', (data) => {
+        const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
             win.webContents.send('brightness', data.percent)
         }
     })
 
-    global.satelliteClient.on('lockedState', (data) => {
-        const win = global.deviceWindows.get(data.deviceId)
+    globalContext.satelliteClient.on('lockedState', (data) => {
+        const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
             win.webContents.send('lockedState', data)
         }
     })
 
     // Connect to Companion
-    global.satelliteClient
+    globalContext.satelliteClient
         .connect({
             mode: 'tcp',
             host: store.get('companionIP', '127.0.0.1') as string,
@@ -248,15 +243,15 @@ export function loadProfile(profileId: string) {
     console.log('Profile details:', profile)
 
     // Close all current windows
-    global.deviceWindows.forEach((win) => win.close())
-    global.deviceWindows.clear()
+    globalContext.deviceWindows.forEach((win) => win.close())
+    globalContext.deviceWindows.clear()
 
     // Remove all current devices from satellite
-    if (global.satelliteClient) {
+    if (globalContext.satelliteClient) {
         const currentDeviceIds = store.get('deviceIds', []) as string[]
         for (const deviceId of currentDeviceIds) {
             console.log(`[Satellite] Removing device: ${deviceId}`)
-            global.satelliteClient.removeDevice(deviceId)
+            globalContext.satelliteClient.removeDevice(deviceId)
         }
     }
 

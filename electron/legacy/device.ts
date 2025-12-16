@@ -6,6 +6,7 @@ import { defaultSettings, SettingsType } from './defaults'
 import { showDevTools } from './utils'
 import { updateTrayMenu } from './tray'
 import { is } from '@electron-toolkit/utils'
+import { globalContext } from './global'
 
 const store = new Store<SettingsType>({
     defaults: defaultSettings
@@ -123,12 +124,12 @@ export function createDeviceWindow(deviceId: string) {
         store.set(`device.${deviceId}.y`, y)
     })
 
-    global.deviceWindows.set(deviceId, win)
+    globalContext.deviceWindows.set(deviceId, win)
 }
 
 // Show all device windows
 export function showWindows() {
-    global.deviceWindows.forEach((win, deviceId) => {
+    globalContext.deviceWindows.forEach((win, deviceId) => {
         console.log(`Showing window for deviceId: ${deviceId}`)
         const hidden = store.get(`device.${deviceId}.hidden`, false)
         if (!hidden) {
@@ -144,7 +145,7 @@ export function showWindows() {
 
 // Show or hide device labels in all windows
 export function showDeviceLabels(show: boolean) {
-    global.deviceWindows.forEach((win, deviceId) => {
+    globalContext.deviceWindows.forEach((win, deviceId) => {
         win.webContents.send('showDeviceLabel', { deviceId, show })
     })
 }
@@ -194,7 +195,7 @@ export function calculateWindowSize(
 
 //this is for the "hide empty keys" feature
 export function resizeWindowForDevice(deviceId: string) {
-    const win = global.deviceWindows.get(deviceId)
+    const win = globalContext.deviceWindows.get(deviceId)
     if (!win) {
         console.warn(`No window found for device ${deviceId}`)
         return
@@ -205,7 +206,7 @@ export function resizeWindowForDevice(deviceId: string) {
     const bitmapSize = deviceConfig.bitmapSize || 72
     const columnCount = deviceConfig.columnCount || 8
 
-    const keyMap = global.keyStates.get(deviceId)
+    const keyMap = globalContext.keyStates.get(deviceId)
     if (!hideEmptyKeys || !keyMap || keyMap.size === 0) {
         // Default grid size
         const { width, height } = calculateWindowSize(

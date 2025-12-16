@@ -12,6 +12,7 @@ import {
     showDeviceLabels,
 } from './device'
 import { is } from '@electron-toolkit/utils'
+import { globalContext } from './global'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -49,7 +50,7 @@ export function initializeIpcHandlers() {
     })
 
     ipcMain.handle('getKeypadBounds', (_event, deviceId) => {
-        const win = global.deviceWindows?.get(deviceId)
+        const win = globalContext.deviceWindows?.get(deviceId)
         if (win) {
             const bounds = win.getBounds()
             const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
@@ -61,7 +62,7 @@ export function initializeIpcHandlers() {
     ipcMain.handle(
         'resizeKeypadWindow',
         (_event, { deviceId, width, height }) => {
-            const win = global.deviceWindows?.get(deviceId)
+            const win = globalContext.deviceWindows?.get(deviceId)
             if (win) {
                 win.setBounds({
                     ...win.getBounds(),
@@ -73,7 +74,7 @@ export function initializeIpcHandlers() {
     )
 
     ipcMain.handle('closeKeypad', (_event, deviceId) => {
-        const win = global.deviceWindows?.get(deviceId)
+        const win = globalContext.deviceWindows?.get(deviceId)
         if (win) {
             win.hide()
             store.set(`device.${deviceId}.hidden`, true)
@@ -84,7 +85,7 @@ export function initializeIpcHandlers() {
 
     // Handle keyPress events (from renderer)
     ipcMain.on('keyPress', (_event, { deviceId, x, y, action }) => {
-        if (!global.satelliteClient) return
+        if (!globalContext.satelliteClient) return
 
         const disablePress = store.get(`device.${deviceId}.disablePress`, false)
         if (disablePress) {
@@ -93,13 +94,13 @@ export function initializeIpcHandlers() {
         }
 
         if (action === 'down') {
-            global.satelliteClient.keyDownXY(deviceId, x, y)
+            globalContext.satelliteClient.keyDownXY(deviceId, x, y)
         } else if (action === 'up') {
-            global.satelliteClient.keyUpXY(deviceId, x, y)
+            globalContext.satelliteClient.keyUpXY(deviceId, x, y)
         } else if (action === 'rotateLeft') {
-            global.satelliteClient.rotateLeftXY(deviceId, x, y)
+            globalContext.satelliteClient.rotateLeftXY(deviceId, x, y)
         } else if (action === 'rotateRight') {
-            global.satelliteClient.rotateRightXY(deviceId, x, y)
+            globalContext.satelliteClient.rotateRightXY(deviceId, x, y)
         }
     })
 
@@ -138,7 +139,7 @@ export function initializeIpcHandlers() {
 
     // Handle brightness request from renderer (optional)
     ipcMain.handle('setBrightness', (_event, brightness) => {
-        global.deviceWindows?.forEach((win) => {
+        globalContext.deviceWindows?.forEach((win) => {
             win.webContents.send('brightness', brightness)
         })
     })
@@ -147,13 +148,13 @@ export function initializeIpcHandlers() {
     ipcMain.handle(
         'setHotkeyContext',
         (_event, { deviceId, keyIndex, imageBase64 }) => {
-            global.hotkeyContext = { deviceId, keyIndex, imageBase64 }
+            globalContext.hotkeyContext = { deviceId, keyIndex, imageBase64 }
         }
     )
 
     // Get key context for the hotkey prompt
     ipcMain.handle('getHotkeyContext', (_event) => {
-        const context = global.hotkeyContext // deviceId, keyIndex, imageBase64
+        const context = globalContext.hotkeyContext // deviceId, keyIndex, imageBase64
 
         if (!context) {
             return undefined
@@ -168,7 +169,7 @@ export function initializeIpcHandlers() {
             keyIndex: number
             imageBase64: string | null
         }>
-        for (const [hotkey, mapping] of global.registeredHotkeys.entries()) {
+        for (const [hotkey, mapping] of globalContext.registeredHotkeys.entries()) {
             hotkeys.push({
                 hotkey,
                 deviceId: mapping.deviceId,
@@ -186,8 +187,8 @@ export function initializeIpcHandlers() {
     })
 
     ipcMain.handle('openHotkeyPrompt', () => {
-        if (global.hotkeyPromptWindow && !global.hotkeyPromptWindow.isDestroyed()) {
-            global.hotkeyPromptWindow.focus()
+        if (globalContext.hotkeyPromptWindow && !globalContext.hotkeyPromptWindow.isDestroyed()) {
+            globalContext.hotkeyPromptWindow.focus()
             return
         }
 
@@ -225,19 +226,16 @@ export function initializeIpcHandlers() {
         win.on('hide', () => showDeviceLabels(false))
         win.on('close', () => showDeviceLabels(false))
 
-        global.hotkeyPromptWindow = win
+        globalContext.hotkeyPromptWindow = win
 
         win.on('closed', () => {
-            global.hotkeyPromptWindow = null
+            globalContext.hotkeyPromptWindow = null
         })
     })
 
     ipcMain.handle('closeHotkeyPrompt', () => {
-        if (
-            global.hotkeyPromptWindow &&
-            !global.hotkeyPromptWindow.isDestroyed()
-        ) {
-            global.hotkeyPromptWindow.close()
+        if (globalContext.hotkeyPromptWindow && !globalContext.hotkeyPromptWindow.isDestroyed()) {
+            globalContext.hotkeyPromptWindow.close()
         }
     })
 
@@ -292,7 +290,7 @@ export function initializeIpcHandlers() {
         // Create the window
         createDeviceWindow(newDeviceId)
 
-        global.satelliteClient?.addDevice(newDeviceId, 'ScreenDeck', {
+        globalContext.satelliteClient?.addDevice(newDeviceId, 'ScreenDeck', {
             columnCount: store.get(`device.${newDeviceId}.columnCount`, 8),
             rowCount: store.get(`device.${newDeviceId}.rowCount`, 4),
             bitmapSize: store.get(`device.${newDeviceId}.bitmapSize`, 72),
@@ -354,7 +352,7 @@ export function initializeIpcHandlers() {
         console.log(`Device ${deviceId} config updated:`, config)
 
         // Update the BrowserWindow properties
-        const win = global.deviceWindows.get(deviceId)
+        const win = globalContext.deviceWindows.get(deviceId)
         if (win) {
             if (config.alwaysOnTop !== undefined) {
                 win.setAlwaysOnTop(Boolean(config.alwaysOnTop))
@@ -400,18 +398,12 @@ export function initializeIpcHandlers() {
                 win.setSize(width, height)
 
                 // If the Satellite client is connected and key properties changed, update the device config
-                if (global.satelliteClient) {
-                    global.satelliteClient.removeDevice(deviceId)
-                    global.satelliteClient.addDevice(deviceId, 'ScreenDeck', {
-                        columnCount: store.get(
-                            `device.${deviceId}.columnCount`,
-                            8
-                        ),
+                if (globalContext.satelliteClient) {
+                    globalContext.satelliteClient.removeDevice(deviceId)
+                    globalContext.satelliteClient.addDevice(deviceId, 'ScreenDeck', {
+                        columnCount: store.get(`device.${deviceId}.columnCount`, 8),
                         rowCount: store.get(`device.${deviceId}.rowCount`, 4),
-                        bitmapSize: store.get(
-                            `device.${deviceId}.bitmapSize`,
-                            72
-                        ),
+                        bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
                         colours: true,
                         text: true,
                         brightness: true,
@@ -470,15 +462,15 @@ export function initializeIpcHandlers() {
         })
 
         // Close the window
-        const win = global.deviceWindows.get(deviceId)
+        const win = globalContext.deviceWindows.get(deviceId)
         if (win) {
             win.close()
-            global.deviceWindows.delete(deviceId)
+            globalContext.deviceWindows.delete(deviceId)
         }
 
         // If the Satellite client is connected, remove the device
-        if (global.satelliteClient) {
-            global.satelliteClient.removeDevice(deviceId)
+        if (globalContext.satelliteClient) {
+            globalContext.satelliteClient.removeDevice(deviceId)
         }
         console.log(`Device ${deviceId} deleted.`)
     })
@@ -502,9 +494,9 @@ export function initializeIpcHandlers() {
                 'Companion IP or port changed, restarting connection...'
             )
 
-            if (global.satelliteClient) {
-                global.satelliteClient.disconnect() // Your close method for the new API
-                global.satelliteClient = null
+            if (globalContext.satelliteClient) {
+                globalContext.satelliteClient.disconnect() // Your close method for the new API
+                globalContext.satelliteClient = null
             }
 
             // Wait briefly, then reconnect with the new IP/port
@@ -515,7 +507,7 @@ export function initializeIpcHandlers() {
     })
 
     ipcMain.handle('closeSettingsWindow', () => {
-        const settingsWindow = global.settingsWindow
+        const settingsWindow = globalContext.settingsWindow
         if (settingsWindow) {
             settingsWindow.close()
         }

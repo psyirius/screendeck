@@ -10,6 +10,7 @@ import {
 import { ProfilesStore } from './types'
 import { unregisterAllHotkeys } from './hotkeys'
 import trayIcon from '../../assets/tray-icon.png?asset'
+import { globalContext } from './global'
 
 let tray: Tray | null = null
 const store = new Store()
@@ -44,15 +45,15 @@ function updateTrayMenu() {
         { label: `ScreenDeck Version: ${version || ''}`, enabled: false },
         { label: `Companion IP: ${companionIP || ''}`, enabled: false },
         {
-            label: `Companion Version: ${global.satelliteClient?.companionVersion || 'Unknown'}`,
+            label: `Companion Version: ${globalContext.satelliteClient?.companionVersion || 'Unknown'}`,
             enabled: false,
         },
         {
-            label: `Satellite API Version: ${global.satelliteClient?.companionApiVersion || 'Unknown'}`,
+            label: `Satellite API Version: ${globalContext.satelliteClient?.companionApiVersion || 'Unknown'}`,
             enabled: false,
         },
         {
-            label: `Connected: ${global.satelliteClient?.connected ? 'Yes' : 'No'}`,
+            label: `Connected: ${globalContext.satelliteClient?.connected ? 'Yes' : 'No'}`,
             enabled: false,
         },
         { type: 'separator' },
@@ -60,7 +61,7 @@ function updateTrayMenu() {
             label: `Hide All Screen Decks`,
             type: 'normal',
             click: () => {
-                global.deviceWindows.forEach((win) => {
+                globalContext.deviceWindows.forEach((win) => {
                     if (win.isVisible()) {
                         win.hide()
                         store.set(`device.${win.webContents.id}.hidden`, true)
@@ -73,7 +74,7 @@ function updateTrayMenu() {
             label: `Show All Screen Decks`,
             type: 'normal',
             click: () => {
-                global.deviceWindows.forEach((win) => {
+                globalContext.deviceWindows.forEach((win) => {
                     if (!win.isVisible()) {
                         win.show()
                         store.set(`device.${win.webContents.id}.hidden`, false)
@@ -87,7 +88,7 @@ function updateTrayMenu() {
 
     const devices = store.get('deviceIds') as string[]
     const deviceMenuItems = devices.map((deviceId) => {
-        const win = global.deviceWindows.get(deviceId)
+        const win = globalContext.deviceWindows.get(deviceId)
         const isVisible = win?.isVisible() ?? false
         const isDisabled = store.get(`device.${deviceId}.disablePress`, false)
 
@@ -98,7 +99,7 @@ function updateTrayMenu() {
                     label: 'Identify',
                     type: 'normal',
                     click: () => {
-                        const win = global.deviceWindows.get(deviceId)
+                        const win = globalContext.deviceWindows.get(deviceId)
                         if (win) {
                             //show the window if it's hidden
                             if (!isVisible) {
@@ -114,7 +115,7 @@ function updateTrayMenu() {
                     label: isVisible ? 'Hide' : 'Show',
                     type: 'normal',
                     click: () => {
-                        const win = global.deviceWindows.get(deviceId)
+                        const win = globalContext.deviceWindows.get(deviceId)
                         if (win) {
                             if (win.isVisible()) {
                                 win.hide()
@@ -136,7 +137,7 @@ function updateTrayMenu() {
                         const newState = !isDisabled
                         store.set(`device.${deviceId}.disablePress`, newState)
 
-                        const win = global.deviceWindows.get(deviceId)
+                        const win = globalContext.deviceWindows.get(deviceId)
                         if (win) {
                             win.webContents.send('disablePress', newState)
                         }
@@ -189,12 +190,12 @@ function updateTrayMenu() {
             type: 'normal',
             click: () => {
                 // Disconnect Companion client
-                if (global.satelliteClient) {
-                    global.satelliteClient.disconnect() // or .disconnect() based on your API
+                if (globalContext.satelliteClient) {
+                    globalContext.satelliteClient.disconnect() // or .disconnect() based on your API
                 }
 
                 // Close all device windows
-                global.deviceWindows?.forEach((win) => {
+                globalContext.deviceWindows?.forEach((win) => {
                     win.close()
                 })
 
@@ -213,7 +214,7 @@ function updateTrayMenu() {
                     process.exit(0)
                 }, 1000)
             },
-        }
+        },
     ] as Electron.MenuItemConstructorOptions[]
 
     const contextMenu = Menu.buildFromTemplate([

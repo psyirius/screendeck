@@ -1,32 +1,3 @@
-declare global {
-    var satelliteClient: CompanionSatelliteClient | null
-    var deviceWindows: Map<string, Electron.BrowserWindow>
-    var keyStates: Map<
-        string,
-        Map<
-            number,
-            {
-                imageBase64?: string
-                color?: string
-                text?: string
-                // add more fields as needed (e.g., textColor, fontSize)
-            }
-        >
-    >
-    var hotkeyPromptWindow: Electron.BrowserWindow | null
-    var hotkeyContext: {
-        deviceId: string
-        keyIndex: number
-        imageBase64: string
-    } | null
-    var registeredHotkeys: Map<
-        string,
-        { deviceId: string; keyIndex: number; imageBase64: string }
-    >
-    var trayParentWindow: Electron.BrowserWindow
-    var settingsWindow: Electron.BrowserWindow | null
-}
-
 export type KeyObj = {
     key?: number
     type?: string

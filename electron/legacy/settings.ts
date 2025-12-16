@@ -3,6 +3,7 @@ import * as path from 'path'
 import { showDeviceLabels } from './device'
 import { showDevTools } from './utils'
 import { is } from '@electron-toolkit/utils'
+import { globalContext } from './global'
 
 let settingsWindow: BrowserWindow | null = null
 
@@ -57,5 +58,5 @@ export default function createSettingsWindow() {
     settingsWindow.on('hide', () => showDeviceLabels(false))
     settingsWindow.on('close', () => showDeviceLabels(false))
 
-    global.settingsWindow = settingsWindow
+    globalContext.settingsWindow = settingsWindow
 }
