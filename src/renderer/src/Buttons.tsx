@@ -874,12 +874,12 @@ const NewButtons = () => {
         <div
             className="window-container"
             onMouseEnter={() => {
-                if (hideTimeout.current) clearTimeout(hideTimeout.current);
-                showKeypad();
+                if (hideTimeout.current) clearTimeout(hideTimeout.current)
+                showKeypad()
             }}
             onMouseLeave={() => {
                 if (ui.autoHide) {
-                    hideTimeout.current = setTimeout(hideKeypad, 500);
+                    hideTimeout.current = setTimeout(hideKeypad, 500)
                 }
             }}
         >
@@ -891,7 +891,11 @@ const NewButtons = () => {
                 ×
             </button>
 
-            {ui.isLocked && <div className="lock-indicator" style={{ display: 'block' }}>🔒</div>}
+            {ui.isLocked && (
+                <div className="lock-indicator" style={{ display: 'block' }}>
+                    🔒
+                </div>
+            )}
 
             {ui.showLabel && (
                 <div className="device-label" style={{ display: 'block' }}>
@@ -904,7 +908,7 @@ const NewButtons = () => {
                 style={{
                     opacity: ui.showLogo ? 0 : ui.opacity,
                     transition: 'opacity 0.3s ease',
-                    height: '100%'
+                    height: '100%',
                 }}
             >
                 <KeypadGrid {...keypadProps} />
@@ -926,7 +930,11 @@ const NewButtons = () => {
                     transition: 'opacity 0.3s ease',
                 }}
             >
-                <img src="/assets/images/logo.png" alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', opacity: 0.7 }} />
+                <img
+                    src="/assets/images/logo.png"
+                    alt="Logo"
+                    style={{ maxWidth: '100%', maxHeight: '100%', opacity: 0.7 }}
+                />
             </div>
 
             {contextMenu && (
@@ -938,96 +946,99 @@ const NewButtons = () => {
                 />
             )}
         </div>
-    );
+    )
 };
+
+
+type _InitOptions = {
+    DEVICE_ID: string
+    $elements: {
+        keypad: React.RefObject<HTMLElement | null>
+        logoOverlay: React.RefObject<HTMLElement | null>
+        closeButton: React.RefObject<HTMLElement | null>
+    }
+    $state: {
+        Columns: number
+        Rows: number
+        AutoHideOnLeave: boolean
+        HideEmptyKeys: boolean
+        OriginalBounds: {
+            height: number
+            width: number
+        } | null
+        AutoHideTimeout: ReturnType<typeof setTimeout> | null
+    }
+}
 
 /**
  * Initialization closure for the keypad window.
  * Handles parsing URL params, setting up global listeners, and managing the keypad lifecycle.
  */
-const _init = () => {
-    if ((_init as any).done) return;
+const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
+    if ((_init as any).done) return
 
-    const urlParams = new URLSearchParams(window.location.search)
-    const deviceId = urlParams.get('deviceId')!
-
-    if (!deviceId) {
+    if (!DEVICE_ID) {
         console.error('No deviceId in query string')
         throw new Error('No deviceId')
     }
 
     const keyElements: HTMLElement[] = []
-    const activeKeys = new Set()
+    const activeKeys = new Set<number>()
 
-    let globalColumnCount = 0
-    // @ts-ignore
-    let globalRowCount = 0
-
-    let keyStates = new Map<
+    const keyStates = new Map<
         string,
-        Map<number, {
-            keyIndex: string | null;
-            bitmap: string | null;
-            text: string | null;
-            color: string | null;
-            imageBase64: string | null;
-        }>
+        Map<
+            number,
+            {
+                keyIndex: string | null
+                bitmap: string | null
+                text: string | null
+                color: string | null
+                imageBase64: string | null
+            }
+        >
     >() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
 
-    let globalAutoHideOnLeave = false
-    let globalHideEmptyKeys = false
-
     // Request config from main process
-    window.electronAPI.invoke('getDeviceConfig', deviceId).then((config) => {
+    window.electronAPI.invoke('getDeviceConfig', DEVICE_ID).then((config) => {
         const { autoHide, hideEmptyKeys, backgroundColor, backgroundOpacity } = config
 
-        globalAutoHideOnLeave = autoHide || false
-        globalHideEmptyKeys = hideEmptyKeys || false
+        $state.AutoHideOnLeave = autoHide || false
+        $state.HideEmptyKeys = hideEmptyKeys || false
 
-        const keypad = document.getElementById('keypad')
-        if (keypad) {
-            keypad.style.backgroundColor = hexToRgba(backgroundColor, backgroundOpacity)
-        }
+        const keypad = $elements.keypad.current!
+        const logoOverlay = $elements.logoOverlay.current!
+        const closeButton = $elements.closeButton.current!
 
-        // Handle auto hide on mouse leave
-        let hideTimeout: ReturnType<typeof setTimeout> | null = null
-
-        let originalBounds: {
-            height: number
-            width: number
-        } | null = null
+        keypad.style.backgroundColor = hexToRgba(backgroundColor, backgroundOpacity ?? 0.5)
 
         /**
          * Hides the keypad when the mouse leaves the window (if auto-hide is enabled).
          * Fades out the keypad, shows the logo overlay, and shrinks the window.
          */
         function hideKeypad() {
-            console.log('Hiding keypad for device:', deviceId)
-            if (!globalAutoHideOnLeave) return
+            if (!$state.AutoHideOnLeave) return
 
-            const keypad = document.getElementById('keypad')
-            const logo = document.getElementById('logoOverlay')
+            console.log('Hiding keypad for device:', DEVICE_ID)
 
-            if (keypad && logo) {
-                // Fade out keypad
-                keypad.style.opacity = '0'
-                keypad.style.pointerEvents = 'none'
+            // Fade out keypad
+            keypad.style.opacity = '0'
+            keypad.style.pointerEvents = 'none'
 
-                // Show and fade in logo
-                logo.style.display = 'flex'
-                setTimeout(() => {
-                    logo.style.opacity = '1'
-                    logo.style.transform = 'scale(1)'
-                    logo.style.backgroundColor = keypad.style.backgroundColor
-                }, 10)
-            }
+            // Show and fade in logo
+            logoOverlay.style.display = 'flex'
+            setTimeout(() => {
+                logoOverlay.style.opacity = '1'
+                logoOverlay.style.transform = 'scale(1)'
+                logoOverlay.style.backgroundColor = keypad.style.backgroundColor
+            }, 10)
 
             // Save current size before shrinking
-            window.electronAPI.invoke('getKeypadBounds', deviceId).then((bounds) => {
-                originalBounds = bounds
+            window.electronAPI.invoke('getKeypadBounds', DEVICE_ID).then((bounds) => {
+                $state.OriginalBounds = bounds
                 const bitmapSize = bounds.bitmapSize || 72
                 window.electronAPI.invoke('resizeKeypadWindow', {
-                    deviceId,
+                    deviceId: DEVICE_ID,
                     width: bitmapSize + 50, // 50px padding
                     height: bitmapSize + 50, // 50px padding
                 })
@@ -1039,87 +1050,75 @@ const _init = () => {
          * Fades in the keypad, hides the logo overlay, and restores the window size.
          */
         function showKeypad() {
-            console.log('Showing keypad for device:', deviceId)
-            if (!globalAutoHideOnLeave || !originalBounds) return
+            if (!$state.AutoHideOnLeave || !$state.OriginalBounds) return
 
-            const keypad = document.getElementById('keypad')
-            const logo = document.getElementById('logoOverlay')
+            console.log('Showing keypad for device:', DEVICE_ID)
 
-            if (keypad && logo) {
-                // Hide logo smoothly
-                logo.style.opacity = '0'
-                logo.style.transform = 'scale(0.95)'
+            // Hide logo smoothly
+            logoOverlay.style.opacity = '0'
+            logoOverlay.style.transform = 'scale(0.95)'
 
-                setTimeout(() => {
-                    logo.style.display = 'none'
-                    keypad.style.opacity = '1'
-                    keypad.style.pointerEvents = 'auto'
-                }, 300)
-            }
+            setTimeout(() => {
+                logoOverlay.style.display = 'none'
+                keypad.style.opacity = '1'
+                keypad.style.pointerEvents = 'auto'
+            }, 300)
 
             // Restore original size
             window.electronAPI.invoke('resizeKeypadWindow', {
-                deviceId,
-                width: originalBounds.width,
-                height: originalBounds.height,
+                deviceId: DEVICE_ID,
+                width: $state.OriginalBounds.width,
+                height: $state.OriginalBounds.height,
             })
         }
 
-        if (keypad) {
-            window.addEventListener('mouseleave', () => {
-                const closeButton = document.getElementById('closeButton')
-                if (closeButton) {
-                    closeButton.style.opacity = '0'
-                    closeButton.style.pointerEvents = 'none'
-                }
+        window.addEventListener('mouseleave', () => {
+            closeButton.style.opacity = '0'
+            closeButton.style.pointerEvents = 'none'
 
-                console.log('Mouse left window, hiding keypad for device:', deviceId)
-                if (globalAutoHideOnLeave) {
-                    hideTimeout = setTimeout(hideKeypad, 500) // small delay
-                }
-            })
+            console.log('Mouse left window, hiding keypad for device:', DEVICE_ID)
+            if ($state.AutoHideOnLeave) {
+                $state.AutoHideTimeout = setTimeout(hideKeypad, 500) // small delay
+            }
+        })
 
-            window.addEventListener('mouseenter', () => {
-                const closeButton = document.getElementById('closeButton')
-                if (closeButton) {
-                    closeButton.style.opacity = '1'
-                    closeButton.style.pointerEvents = 'auto'
-                }
+        window.addEventListener('mouseenter', () => {
+            closeButton.style.opacity = '1'
+            closeButton.style.pointerEvents = 'auto'
 
-                console.log('Mouse entered window, showing keypad for device:', deviceId)
-                if (hideTimeout) {
-                    clearTimeout(hideTimeout)
-                    hideTimeout = null
-                }
-                if (globalAutoHideOnLeave) {
-                    showKeypad()
-                }
-            })
+            console.log('Mouse entered window, showing keypad for device:', DEVICE_ID)
+            if ($state.AutoHideTimeout) {
+                clearTimeout($state.AutoHideTimeout)
+                $state.AutoHideTimeout = null
+            }
+            if ($state.AutoHideOnLeave) {
+                showKeypad()
+            }
+        })
 
-            window.addEventListener('mousemove', (e) => {
-                const threshold = 50 // pixels
+        window.addEventListener('mousemove', (e) => {
+            const threshold = 50 // pixels
 
-                if (
-                    e.clientX < threshold ||
-                    e.clientY < threshold ||
-                    e.clientX > window.innerWidth - threshold ||
-                    e.clientY > window.innerHeight - threshold
-                ) {
-                    showKeypad()
-                }
-            })
-        }
+            if (
+                e.clientX < threshold ||
+                e.clientY < threshold ||
+                e.clientX > window.innerWidth - threshold ||
+                e.clientY > window.innerHeight - threshold
+            ) {
+                showKeypad()
+            }
+        })
 
         const columnCount = config.columnCount || 0
-        globalColumnCount = columnCount
+        $state.Columns = columnCount
         const rowCount = config.rowCount || 0
-        globalRowCount = rowCount
+        $state.Rows = rowCount
 
         if (columnCount <= 0 || rowCount <= 0) {
-            console.warn(`No keys defined for ${deviceId}. Hiding UI.`)
+            console.warn(`No keys defined for ${DEVICE_ID}. Hiding UI.`)
             document.body.style.backgroundColor = 'transparent'
-            document.getElementById('keypad')!.style.display = 'none'
-            document.getElementById('closeButton')!.style.display = 'none'
+            keypad.style.display = 'none'
+            closeButton.style.display = 'none'
             return
         }
 
@@ -1131,10 +1130,10 @@ const _init = () => {
      * @param {number} columnCount - Number of columns in the grid.
      * @param {number} rowCount - Number of rows in the grid.
      */
-    function buildKeyGrid(columnCount, rowCount) {
-        const keypad = document.getElementById('keypad')!
-        globalColumnCount = columnCount
-        globalRowCount = rowCount
+    function buildKeyGrid(columnCount: number, rowCount: number) {
+        const keypad = $elements.keypad.current!
+        $state.Columns = columnCount
+        $state.Rows = rowCount
         const keysTotal = columnCount * rowCount
 
         keypad.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`
@@ -1151,7 +1150,7 @@ const _init = () => {
             keypad.appendChild(keyElement)
             keyElements.push(keyElement)
 
-            refreshKey(deviceId, i)
+            refreshKey(DEVICE_ID, i)
         }
 
         //checkKeyStates()
@@ -1183,20 +1182,20 @@ const _init = () => {
     //
     // function updateGridLayout() {
     //     const keypad = document.getElementById('keypad')
-    //     if (!globalHideEmptyKeys) {
-    //         keypad.style.gridTemplateColumns = `repeat(${globalColumnCount}, 1fr)`
-    //         currentMaxColumns = globalColumnCount
-    //         currentMaxRows = globalRowCount
+    //     if (!_opt.state.HideEmptyKeys) {
+    //         keypad.style.gridTemplateColumns = `repeat(${$state.Columns}, 1fr)`
+    //         currentMaxColumns = $state.Columns
+    //         currentMaxRows = $state.Rows
     //         return
     //     }
     //
     //     let maxCols = 0
     //     let maxRow = 0
-    //     for (let row = 0; row < globalRowCount; row++) {
+    //     for (let row = 0; row < $state.Rows; row++) {
     //         let rowHasContent = false
     //         let rowCols = 0
-    //         for (let col = 0; col < globalColumnCount; col++) {
-    //             const index = row * globalColumnCount + col
+    //         for (let col = 0; col < $state.Columns; col++) {
+    //             const index = row * $state.Columns + col
     //             const keyEl = keyElements[index]
     //             if (keyEl && keyEl.style.display !== 'none') {
     //                 rowHasContent = true
@@ -1278,24 +1277,24 @@ const _init = () => {
             if (action === 'encoder') {
                 window.electronAPI
                     .invoke('updateKeyConfig', {
-                        deviceId,
+                        deviceId: DEVICE_ID,
                         keyIndex,
                         config: { isEncoder: true },
                     })
-                    .then(() => refreshKey(deviceId, keyIndex))
+                    .then(() => refreshKey(DEVICE_ID, keyIndex))
             } else if (action === 'button') {
                 window.electronAPI
                     .invoke('updateKeyConfig', {
-                        deviceId,
+                        deviceId: DEVICE_ID,
                         keyIndex,
                         config: { isEncoder: false },
                     })
-                    .then(() => refreshKey(deviceId, keyIndex))
+                    .then(() => refreshKey(DEVICE_ID, keyIndex))
             } else if (action === 'hotkey') {
-                let keyConfig = keyStates.get(deviceId)?.get(keyIndex)
+                let keyConfig = keyStates.get(DEVICE_ID)?.get(keyIndex)
                 let imageBase64 = keyConfig?.imageBase64 || null
                 window.electronAPI.invoke('setHotkeyContext', {
-                    deviceId,
+                    deviceId: DEVICE_ID,
                     keyIndex,
                     imageBase64,
                 })
@@ -1462,8 +1461,8 @@ const _init = () => {
      * @param {string} action - The action (down, up, rotateLeft, rotateRight).
      */
     function sendKeyPress(keyIndex, action) {
-        const x = keyIndex % globalColumnCount
-        const y = Math.floor(keyIndex / globalColumnCount)
+        const x = keyIndex % $state.Columns
+        const y = Math.floor(keyIndex / $state.Columns)
 
         sendKeyPressXY(x, y, action)
     }
@@ -1476,7 +1475,7 @@ const _init = () => {
      */
     function sendKeyPressXY(x, y, action) {
         window.electronAPI.send('keyPress', {
-            deviceId,
+            deviceId: DEVICE_ID,
             x,
             y,
             action,
@@ -1502,11 +1501,11 @@ const _init = () => {
     })
 
     window.electronAPI.onAutoHide((_, autoHide) => {
-        globalAutoHideOnLeave = autoHide
+        $state.AutoHideOnLeave = autoHide
     })
 
     window.electronAPI.onHideEmptyKeys((_, hideEmptyKeys) => {
-        globalHideEmptyKeys = hideEmptyKeys
+        $state.HideEmptyKeys = hideEmptyKeys
         //logic to hide empty keys
     })
 
@@ -1520,13 +1519,16 @@ const _init = () => {
         keypad.style.transition = 'background-color 0.5s ease'
 
         setTimeout(() => {
-            window.electronAPI.invoke('getDeviceConfig', deviceId).then((config) => {
+            window.electronAPI.invoke('getDeviceConfig', DEVICE_ID).then((config) => {
                 console.log('got config:', config)
                 const { backgroundColor, backgroundOpacity } = config
 
                 const keypad = document.getElementById('keypad')
                 if (keypad) {
-                    keypad.style.backgroundColor = hexToRgba(backgroundColor, backgroundOpacity)
+                    keypad.style.backgroundColor = hexToRgba(
+                        backgroundColor,
+                        backgroundOpacity ?? 0.5
+                    )
                 }
             })
         }, 800)
@@ -1539,13 +1541,13 @@ const _init = () => {
     })
 
     window.electronAPI.onRebuildGrid((_, { columnCount, rowCount }) => {
-        globalColumnCount = columnCount
+        $state.Columns = columnCount
         buildKeyGrid(columnCount, rowCount)
     })
 
     // Handle key events from Companion
     window.electronAPI.onDraw((_event, keyObj) => {
-        if (keyObj.deviceId !== deviceId) return
+        if (keyObj.deviceId !== DEVICE_ID) return
 
         if (!keyStates.has(keyObj.deviceId)) {
             keyStates.set(keyObj.deviceId, new Map())
@@ -1562,7 +1564,7 @@ const _init = () => {
 
     // Close button
     document.getElementById('closeButton')!.addEventListener('click', () => {
-        window.electronAPI.invoke('closeKeypad', deviceId) // Send deviceId so main process knows which to close
+        window.electronAPI.invoke('closeKeypad', DEVICE_ID) // Send deviceId so main process knows which to close
     })
 
     /**
@@ -1594,7 +1596,7 @@ const _init = () => {
         const textSpan = keyElement.querySelector('span')
         // let isEmpty = !bitmap && !color && !text
 
-        if (globalHideEmptyKeys) {
+        if ($state.HideEmptyKeys) {
             if (keyObj.imageBase64 || keyObj.text || keyObj.color) {
                 keyElement.style.display = 'flex'
             } else {
@@ -1709,20 +1711,46 @@ const _init = () => {
             sendKeyPress(keyIndex, 'up')
         })
         activeKeys.clear()
-    });
-
-    (_init as any).done = true;
+    })
+        ; (_init as any).done = true
 }
 
 function LegacyButtons() {
+    const keypadRef = React.useRef<HTMLDivElement>(null);
+    const logoOverlayRef = React.useRef<HTMLDivElement>(null);
+    const closeButtonRef = React.useRef<HTMLButtonElement>(null)
+
     useEffect(() => {
-        _init();
+        const urlParams = new URLSearchParams(window.location.search)
+        const deviceId = urlParams.get('deviceId')
+
+        if (!deviceId) {
+            console.error('No deviceId in query string')
+            return
+        }
+
+        _init({
+            DEVICE_ID: deviceId,
+            $elements: {
+                keypad: keypadRef,
+                logoOverlay: logoOverlayRef,
+                closeButton: closeButtonRef,
+            },
+            $state: {
+                Columns: 0,
+                Rows: 0,
+                AutoHideOnLeave: false,
+                HideEmptyKeys: false,
+                OriginalBounds: null,
+                AutoHideTimeout: null, // Handle auto hide on mouse leave
+            },
+        })
     });
 
     return (
         <div className="window-container">
             {/* Close and labels */}
-            <button id="closeButton" className="close-button">
+            <button id="closeButton" className="close-button" ref={closeButtonRef}>
                 ×
             </button>
             <div id="lockIndicator" className="lock-indicator">
@@ -1731,25 +1759,29 @@ function LegacyButtons() {
             <div id="device-label" className="device-label"></div>
 
             {/* The main content area */}
-            <div id="keypad" className="keypad">
+            <div id="keypad" className="keypad" ref={keypadRef}>
                 <div id="loadingMessage">
                     <img src="/assets/images/logo.png" alt="ScreenDeck Logo" />
                 </div>
             </div>
 
             {/* The logo overlay that shows when collapsed */}
-            <div id="logoOverlay" style={{
-                display: 'none',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                height: '100%',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                pointerEvents: 'none',
-                backgroundColor: 'transparent',
-            }}>
+            <div
+                ref={logoOverlayRef}
+                id="logoOverlay"
+                style={{
+                    display: 'none',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    pointerEvents: 'none',
+                    backgroundColor: 'transparent',
+                }}
+            >
                 <img
                     src="/assets/images/logo.png"
                     alt="ScreenDeck Logo"
