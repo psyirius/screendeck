@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { initializeIpcHandlers } from './ipcHandlers'
+import { initializeWebApi } from './web-api'
 import createTray from './tray'
 import { initializeDeviceIds, createSatellite } from './utils'
 import { createDeviceWindows } from './device'
@@ -49,6 +50,7 @@ app.whenReady().then(() => {
     })
 
     init() // Initialize the app, IPC handlers, and device windows
+    initializeWebApi() // Initialize Socket.IO server
     createTray() // Create the system tray icon
 
     app.on('activate', () => {

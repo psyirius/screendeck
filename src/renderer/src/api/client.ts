@@ -157,67 +157,81 @@ export class SocketIOAPIAdapter implements SharedAPI {
         // If specific URL needed, it can be passed or configured.
         this.socket = io();
     }
+    private async request<T>(event: string, ...args: any[]): Promise<T> {
+        const response = await this.socket.emitWithAck(event, ...args)
+        if (response && response.success) {
+            return response.data
+        }
+        throw new Error(response?.error || 'Unknown error')
+    }
 
     getDeviceConfig(deviceId: string): Promise<DeviceConfig> {
-        return this.socket.emitWithAck('getDeviceConfig', deviceId);
+        return this.request('getDeviceConfig', deviceId)
     }
     getKeypadBounds(deviceId: string): Promise<any> {
-        return this.socket.emitWithAck('getKeypadBounds', deviceId);
+        return this.request('getKeypadBounds', deviceId)
     }
     resizeKeypadWindow(args: ResizeKeypadArgs): Promise<void> {
-        return this.socket.emitWithAck('resizeKeypadWindow', args);
+        return this.request('resizeKeypadWindow', args)
     }
     closeKeypad(deviceId: string): Promise<void> {
-        return this.socket.emitWithAck('closeKeypad', deviceId);
+        return this.request('closeKeypad', deviceId)
     }
     keyPress(args: KeyPressArgs): void {
         this.socket.emit('keyPress', args);
     }
     getKeyConfig(args: { deviceId: string; keyIndex: number }): Promise<KeyConfig> {
-        return this.socket.emitWithAck('getKeyConfig', args);
+        return this.request('getKeyConfig', args)
     }
     updateKeyConfig(args: UpdateKeyConfigArgs): Promise<void> {
-        return this.socket.emitWithAck('updateKeyConfig', args);
+        return this.request('updateKeyConfig', args)
     }
     assignHotkey(args: AssignHotkeyArgs): Promise<boolean> {
-        return this.socket.emitWithAck('assignHotkey', args);
+        return this.request('assignHotkey', args)
     }
     clearHotkey(args: ClearHotkeyArgs): Promise<boolean> {
-        return this.socket.emitWithAck('clearHotkey', args);
+        return this.request('clearHotkey', args)
     }
     getHotkeyContext(): Promise<HotkeyContext | undefined> {
-        return this.socket.emitWithAck('getHotkeyContext');
+        return this.request('getHotkeyContext')
     }
-    setHotkeyContext(args: { deviceId: string; keyIndex: number; imageBase64?: string | null }): Promise<void> {
-        return this.socket.emitWithAck('setHotkeyContext', args);
+    setHotkeyContext(args: {
+        deviceId: string
+        keyIndex: number
+        imageBase64?: string | null
+    }): Promise<void> {
+        return this.request('setHotkeyContext', args)
     }
 
     openHotkeyPrompt(): Promise<void> {
-        return this.socket.emitWithAck('openHotkeyPrompt');
+        return this.request('openHotkeyPrompt')
     }
     closeHotkeyPrompt(): Promise<void> {
-        return this.socket.emitWithAck('closeHotkeyPrompt');
+        return this.request('closeHotkeyPrompt')
     }
     saveSettings(settings: any): Promise<void> {
-        return this.socket.emitWithAck('saveSettings', settings);
+        return this.request('saveSettings', settings)
     }
     getSettings(): Promise<any> {
-        return this.socket.emitWithAck('getSettings');
+        return this.request('getSettings')
     }
     getAllDevices(): Promise<Device[]> {
-        return this.socket.emitWithAck('getAllDevices');
+        return this.request('getAllDevices')
     }
     createNewDevice(): Promise<void> {
-        return this.socket.emitWithAck('createNewDevice');
+        return this.request('createNewDevice')
     }
     deleteDevice(deviceId: string): Promise<void> {
-        return this.socket.emitWithAck('deleteDevice', deviceId);
+        return this.request('deleteDevice', deviceId)
     }
-    updateDeviceConfig(args: { deviceId: string; config: Partial<DeviceConfig> }): Promise<void> {
-        return this.socket.emitWithAck('updateDeviceConfig', args);
+    updateDeviceConfig(args: {
+        deviceId: string
+        config: Partial<DeviceConfig>
+    }): Promise<void> {
+        return this.request('updateDeviceConfig', args)
     }
     getNextProfileName(): Promise<string> {
-        return this.socket.emitWithAck('getNextProfileName');
+        return this.request('getNextProfileName')
     }
     sendProfileName(name: string): void {
         this.socket.emit('profileNameResult', name);

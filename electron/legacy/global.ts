@@ -17,12 +17,14 @@ export const globalContext = {
     hotkeyPromptWindow: null as Electron.BrowserWindow | null,
     hotkeyContext: null as
         | {
-              deviceId: string
-              keyIndex: number
-              imageBase64: string
-          }
+            deviceId: string
+            keyIndex: number
+            imageBase64: string
+        }
         | null,
     registeredHotkeys: new Map<string, { deviceId: string; keyIndex: number; imageBase64: string }>(),
     trayParentWindow: null as unknown as Electron.BrowserWindow,
     settingsWindow: null as Electron.BrowserWindow | null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    webSocketServer: null as any | null,
 }
