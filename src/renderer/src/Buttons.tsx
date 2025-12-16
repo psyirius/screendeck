@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { hexToRgba } from './color';
 import { getAPIClient } from '@/api/client';
+import logo from '@/assets/images/logo.png?url';
 
 const api = getAPIClient();
 
@@ -1205,7 +1206,7 @@ function LegacyButtons() {
             {/* The main content area */}
             <div id="keypad" className="keypad" ref={keypadRef}>
                 <div id="loadingMessage">
-                    <img src="/assets/images/logo.png" alt="ScreenDeck Logo" />
+                    <img src={logo} alt="ScreenDeck Logo" />
                 </div>
             </div>
 
@@ -1227,7 +1228,7 @@ function LegacyButtons() {
                 }}
             >
                 <img
-                    src="/assets/images/logo.png"
+                    src={logo}
                     alt="ScreenDeck Logo"
                     id="logoImage"
                     style={{

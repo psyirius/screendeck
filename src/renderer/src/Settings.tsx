@@ -31,6 +31,7 @@ import {
 import { IconTrash, IconDotsVertical, IconCopy, IconEye, IconEyeOff, IconAlertCircle, IconLayout2 } from '@tabler/icons-react'
 import { Device } from '@/types'
 import { getAPIClient } from '@/api/client'
+import logo from '@/assets/images/logo.png?url'
 
 const api = getAPIClient()
 
@@ -421,7 +422,7 @@ const Settings = () => {
                 {/* <div className="flex items-center justify-center p-3 rounded-xl bg-linear-to-br from-primary to-primary/80 shadow-lg text-primary-foreground">
                     <IconLayout2 size={32} stroke={1.5} />
                 </div> */}
-                <img src="/assets/images/logo.png" alt="ScreenDeck Logo" className="w-12 h-12" />
+                <img src={logo} alt="ScreenDeck Logo" className="w-12 h-12" />
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">
                         ScreenDeck

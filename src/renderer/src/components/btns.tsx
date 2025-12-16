@@ -2,6 +2,7 @@
 import React from 'react'
 import { hexToRgba } from '@/color'
 import { getAPIClient } from '@/api/client'
+import logo from '@/assets/images/logo.png?url'
 
 const api = getAPIClient()
 
@@ -957,7 +958,7 @@ const NewButtons = () => {
                 }}
             >
                 <img
-                    src="/assets/images/logo.png"
+                    src={logo}
                     alt="Logo"
                     style={{ maxWidth: '100%', maxHeight: '100%', opacity: 0.7 }}
                 />
