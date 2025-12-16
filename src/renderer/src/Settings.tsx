@@ -30,6 +30,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { IconTrash, IconDotsVertical, IconCopy, IconEye, IconEyeOff, IconAlertCircle, IconLayout2 } from '@tabler/icons-react'
 import { Device } from '@/types'
+import { getAPIClient } from '@/api/client'
+
+const api = getAPIClient()
 
 const CompanionSettings = ({ ip, port, onSave }) => {
     const [localIp, setLocalIp] = useState(ip)
@@ -337,8 +340,8 @@ const Settings = () => {
         setLoading(true)
         try {
             const [allDevices, settings] = await Promise.all([
-                window.electronAPI.invoke('getAllDevices'),
-                window.electronAPI.invoke('getSettings'),
+                api.getAllDevices(),
+                api.getSettings(),
             ])
 
             setDevices(allDevices || [])
@@ -358,22 +361,22 @@ const Settings = () => {
     }, [refreshData])
 
     const handleSaveCompanion = async (ip: any, port: any) => {
-        await window.electronAPI.invoke('saveSettings', { companionIP: ip, companionPort: port })
+        await api.saveSettings({ companionIP: ip, companionPort: port })
         await refreshData()
     }
 
     const handleUpdateDevice = async (deviceId: any, config: any) => {
-        await window.electronAPI.invoke('updateDeviceConfig', { deviceId, config })
+        await api.updateDeviceConfig({ deviceId, config })
         await refreshData()
     }
 
     const handleDeleteDevice = async (deviceId: any) => {
-        await window.electronAPI.invoke('deleteDevice', deviceId)
+        await api.deleteDevice(deviceId)
         await refreshData()
     }
 
     const handleAddDevice = async () => {
-        await window.electronAPI.invoke('createNewDevice')
+        await api.createNewDevice()
         await refreshData()
         // expand newly created device?
     }
@@ -383,10 +386,10 @@ const Settings = () => {
         if (!deviceToCopy) return;
 
         // Create new device to get a new ID
-        await window.electronAPI.invoke('createNewDevice');
+        await api.createNewDevice()
 
         // Fetch list to find the new device
-        const allDevices = await window.electronAPI.invoke('getAllDevices');
+        const allDevices = await api.getAllDevices()
         // Assuming the new device is the one that wasn't there before, or the last one.
         // A safer way is to find the one that is NOT in the current 'devices' list.
         const currentIds = new Set(devices.map(d => d.deviceId));
@@ -399,7 +402,7 @@ const Settings = () => {
                 deviceId: newDevice.deviceId,
                 name: `${deviceToCopy.name || 'Device'} (Copy)`
             };
-            await window.electronAPI.invoke('updateDeviceConfig', { deviceId: newDevice.deviceId, config: newConfig });
+            await api.updateDeviceConfig({ deviceId: newDevice.deviceId, config: newConfig })
             await refreshData();
         }
     }

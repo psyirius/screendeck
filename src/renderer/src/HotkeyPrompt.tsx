@@ -1,5 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react'
+import { getAPIClient } from '@/api/client'
+
+const api = getAPIClient()
 
 function injectCSS() {
     if (injectCSS.injected) return
@@ -119,7 +122,7 @@ const _init = () => {
     let keyIndex = ''
 
     // Get initial data
-    window.electronAPI.invoke('getHotkeyContext').then((data) => {
+    api.getHotkeyContext().then((data) => {
         deviceId = data.deviceId
         keyIndex = data.keyIndex
 
@@ -206,13 +209,12 @@ const _init = () => {
             const btn = document.createElement('button')
             btn.textContent = 'Clear'
             btn.addEventListener('click', () => {
-                window.electronAPI
-                    .invoke('clearHotkey', {
-                        deviceId: h.deviceId,
-                        keyIndex: h.keyIndex,
-                        hotkey: h.hotkey,
-                    })
-                    .then(() => window.location.reload())
+                api.clearHotkey({
+                    deviceId: h.deviceId,
+                    keyIndex: h.keyIndex,
+                    hotkey: h.hotkey,
+                })
+                .then(() => window.location.reload())
             })
             tdButton.appendChild(btn)
             tr.appendChild(tdButton)
@@ -234,23 +236,21 @@ const _init = () => {
 
         const hotkeyStr = Array.from(modifiers).join('+') + `+${primaryKey}`
 
-        window.electronAPI
-            .invoke('assignHotkey', {
-                deviceId,
-                keyIndex,
-                hotkey: hotkeyStr,
-            })
-            .then(() => {
-                window.close()
-            })
+        api.assignHotkey({
+            deviceId,
+            keyIndex,
+            hotkey: hotkeyStr,
+        }).then(() => {
+            window.close()
+        })
     })
 
     document.getElementById('cancel').addEventListener('click', () => {
-        window.electronAPI.invoke('closeHotkeyPrompt')
+        api.closeHotkeyPrompt()
     })
 
     document.getElementById('closeButton').addEventListener('click', () => {
-        window.electronAPI.invoke('closeHotkeyPrompt')
+        api.closeHotkeyPrompt()
     })
 }
 

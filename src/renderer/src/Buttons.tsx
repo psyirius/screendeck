@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react'
 import { hexToRgba } from './color';
+import { getAPIClient } from '@/api/client';
+
+const api = getAPIClient();
 
 // --- Styles ---
 const styles = `
@@ -694,7 +697,7 @@ const NewButtons = () => {
         if (!deviceId || config.columnCount === 0) return;
         const x = index % config.columnCount;
         const y = Math.floor(index / config.columnCount);
-        window.electronAPI.send('keyPress', { deviceId, x, y, action });
+        api.keyPress({ deviceId, x, y, action })
     }, [deviceId, config.columnCount]);
 
     // --- Effects: Initialization ---
@@ -703,19 +706,19 @@ const NewButtons = () => {
         const id = params.get('deviceId');
         if (id) {
             setDeviceId(id);
-            window.electronAPI.invoke('getDeviceConfig', id).then((cfg) => {
+            api.getDeviceConfig(id).then((cfg) => {
                 setConfig({
                     columnCount: cfg.columnCount || 0,
                     rowCount: cfg.rowCount || 0,
                     backgroundColor: cfg.backgroundColor || '#000000',
                     backgroundOpacity: cfg.backgroundOpacity ?? 0.5,
-                });
-                setUi(prev => ({
+                })
+                setUi((prev) => ({
                     ...prev,
                     autoHide: cfg.autoHide || false,
                     hideEmptyKeys: cfg.hideEmptyKeys || false,
-                }));
-            });
+                }))
+            })
         }
     }, []);
 
@@ -728,7 +731,7 @@ const NewButtons = () => {
         // If the API doesn't return a cleanup, we might duplicate listeners on hot reload.
         // For production build this is fine as component likely mounts once.
 
-        window.electronAPI.onDraw((_event, keyObj) => {
+        api.onDraw((_event, keyObj) => {
             if (keyObj.deviceId !== deviceId) return;
             setKeyStates(prev => {
                 const newMap = new Map(prev);
@@ -737,36 +740,36 @@ const NewButtons = () => {
             });
         });
 
-        window.electronAPI.onShowDeviceLabel((data) => {
+        api.onShowDeviceLabel((data) => {
             setUi(prev => ({ ...prev, showLabel: data.show, labelText: data.deviceId }));
         });
 
-        window.electronAPI.onDisablePress((_, disabled) => {
+        api.onDisablePress((_, disabled) => {
             setUi(prev => ({ ...prev, isLocked: disabled }));
         });
 
-        window.electronAPI.onAutoHide((_, autoHide) => {
+        api.onAutoHide((_, autoHide) => {
             setUi(prev => ({ ...prev, autoHide }));
         });
 
-        window.electronAPI.onHideEmptyKeys((_, hideEmptyKeys) => {
+        api.onHideEmptyKeys((_, hideEmptyKeys) => {
             setUi(prev => ({ ...prev, hideEmptyKeys }));
         });
 
-        window.electronAPI.onUpdateBackground((_, data) => {
+        api.onUpdateBackground((_, data) => {
             setConfig(prev => ({ ...prev, backgroundColor: data.backgroundColor, backgroundOpacity: data.backgroundOpacity }));
         });
 
-        window.electronAPI.onRebuildGrid((_, { columnCount, rowCount }) => {
+        api.onRebuildGrid((_, { columnCount, rowCount }) => {
             setConfig(prev => ({ ...prev, columnCount, rowCount }));
             setKeyStates(new Map()); // Clear keys on rebuild
         });
 
-        window.electronAPI.onBrightness((_event, brightness) => {
+        api.onBrightness((_event, brightness) => {
             setUi(prev => ({ ...prev, opacity: brightness / 100 }));
         });
 
-        window.electronAPI.onIdentify(() => {
+        api.onIdentify(() => {
             setUi(prev => ({ ...prev, identifying: true }));
             setTimeout(() => {
                 setUi(prev => ({ ...prev, identifying: false }));
@@ -782,11 +785,11 @@ const NewButtons = () => {
         setUi(prev => ({ ...prev, showLogo: false }));
 
         if (deviceId && originalBounds.current) {
-            window.electronAPI.invoke('resizeKeypadWindow', {
+            api.resizeKeypadWindow({
                 deviceId,
                 width: originalBounds.current.width,
                 height: originalBounds.current.height,
-            });
+            })
         }
     }, [ui.autoHide, deviceId]);
 
@@ -795,15 +798,15 @@ const NewButtons = () => {
         setUi(prev => ({ ...prev, showLogo: true }));
 
         if (deviceId) {
-            window.electronAPI.invoke('getKeypadBounds', deviceId).then((bounds) => {
-                originalBounds.current = bounds;
-                const bitmapSize = bounds.bitmapSize || 72; // Default fallback
-                window.electronAPI.invoke('resizeKeypadWindow', {
+            api.getKeypadBounds(deviceId).then((bounds) => {
+                originalBounds.current = bounds
+                const bitmapSize = bounds.bitmapSize || 72 // Default fallback
+                api.resizeKeypadWindow({
                     deviceId,
                     width: bitmapSize + 50,
                     height: bitmapSize + 50,
-                });
-            });
+                })
+            })
         }
     }, [ui.autoHide, deviceId]);
 
@@ -835,23 +838,23 @@ const NewButtons = () => {
         const { index } = contextMenu;
 
         if (action === 'encoder') {
-            window.electronAPI.invoke('updateKeyConfig', { deviceId, keyIndex: index, config: { isEncoder: true } });
+            api.updateKeyConfig({ deviceId, keyIndex: index, config: { isEncoder: true } })
         } else if (action === 'button') {
-            window.electronAPI.invoke('updateKeyConfig', { deviceId, keyIndex: index, config: { isEncoder: false } });
+            api.updateKeyConfig({ deviceId, keyIndex: index, config: { isEncoder: false } })
         } else if (action === 'hotkey') {
             const keyConfig = keyStates.get(index);
-            window.electronAPI.invoke('setHotkeyContext', { deviceId, keyIndex: index, imageBase64: keyConfig?.imageBase64 });
-            window.electronAPI.invoke('openHotkeyPrompt');
+            api.setHotkeyContext({ deviceId, keyIndex: index, imageBase64: keyConfig?.imageBase64 })
+            api.openHotkeyPrompt()
         }
         setContextMenu(null);
 
         // Refresh single key logic if needed
-        window.electronAPI.invoke('getKeyConfig', { deviceId, keyIndex: index }).then(cfg => {
+        api.getKeyConfig({ deviceId, keyIndex: index }).then((cfg) => {
             // we could force shallow update if key config affects rendering beyond isEncoder class (which is in keyState/config usually?)
             // Actually isEncoder is a prop on Key, which comes from keyStates map.
             // If main process doesn't send 'onDraw' or similar update after config change, we might need to manually fetch and update map.
             // For now, assuming standard flow.
-        });
+        })
 
     }, [contextMenu, deviceId, keyStates]);
 
@@ -886,7 +889,7 @@ const NewButtons = () => {
             <button
                 className="close-button"
                 style={{ opacity: 1 }}
-                onClick={() => window.electronAPI.invoke('closeKeypad', deviceId)}
+                onClick={() => api.closeKeypad(deviceId)}
             >
                 ×
             </button>
@@ -1000,7 +1003,7 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
     >() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
 
     // Request config from main process
-    window.electronAPI.invoke('getDeviceConfig', DEVICE_ID).then((config) => {
+    api.getDeviceConfig(DEVICE_ID).then((config) => {
         const { autoHide, hideEmptyKeys, backgroundColor, backgroundOpacity } = config
 
         $state.AutoHideOnLeave = autoHide || false
@@ -1034,10 +1037,10 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
             }, 10)
 
             // Save current size before shrinking
-            window.electronAPI.invoke('getKeypadBounds', DEVICE_ID).then((bounds) => {
+            api.getKeypadBounds(DEVICE_ID).then((bounds) => {
                 $state.OriginalBounds = bounds
                 const bitmapSize = bounds.bitmapSize || 72
-                window.electronAPI.invoke('resizeKeypadWindow', {
+                api.resizeKeypadWindow({
                     deviceId: DEVICE_ID,
                     width: bitmapSize + 50, // 50px padding
                     height: bitmapSize + 50, // 50px padding
@@ -1065,7 +1068,7 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
             }, 300)
 
             // Restore original size
-            window.electronAPI.invoke('resizeKeypadWindow', {
+            api.resizeKeypadWindow({
                 deviceId: DEVICE_ID,
                 width: $state.OriginalBounds.width,
                 height: $state.OriginalBounds.height,
@@ -1275,30 +1278,26 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
             if (!action) return
 
             if (action === 'encoder') {
-                window.electronAPI
-                    .invoke('updateKeyConfig', {
-                        deviceId: DEVICE_ID,
-                        keyIndex,
-                        config: { isEncoder: true },
-                    })
-                    .then(() => refreshKey(DEVICE_ID, keyIndex))
+                api.updateKeyConfig({
+                    deviceId: DEVICE_ID,
+                    keyIndex,
+                    config: { isEncoder: true },
+                }).then(() => refreshKey(DEVICE_ID, keyIndex))
             } else if (action === 'button') {
-                window.electronAPI
-                    .invoke('updateKeyConfig', {
-                        deviceId: DEVICE_ID,
-                        keyIndex,
-                        config: { isEncoder: false },
-                    })
-                    .then(() => refreshKey(DEVICE_ID, keyIndex))
+                api.updateKeyConfig({
+                    deviceId: DEVICE_ID,
+                    keyIndex,
+                    config: { isEncoder: false },
+                }).then(() => refreshKey(DEVICE_ID, keyIndex))
             } else if (action === 'hotkey') {
                 let keyConfig = keyStates.get(DEVICE_ID)?.get(keyIndex)
                 let imageBase64 = keyConfig?.imageBase64 || null
-                window.electronAPI.invoke('setHotkeyContext', {
+                api.setHotkeyContext({
                     deviceId: DEVICE_ID,
                     keyIndex,
                     imageBase64,
                 })
-                window.electronAPI.invoke('openHotkeyPrompt')
+                api.openHotkeyPrompt()
             }
 
             closeContextMenu()
@@ -1339,7 +1338,7 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
      * @param {number} keyIndex - The index of the key to refresh.
      */
     function refreshKey(deviceId: string, keyIndex) {
-        window.electronAPI.invoke('getKeyConfig', { deviceId, keyIndex }).then((keyConfig) => {
+        api.getKeyConfig({ deviceId, keyIndex }).then((keyConfig) => {
             const keyElement = keyElements[keyIndex]
             if (!keyElement) return
 
@@ -1474,7 +1473,7 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
      * @param {string} action - The action type.
      */
     function sendKeyPressXY(x, y, action) {
-        window.electronAPI.send('keyPress', {
+        api.keyPress({
             deviceId: DEVICE_ID,
             x,
             y,
@@ -1482,7 +1481,7 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
         })
     }
 
-    window.electronAPI.onShowDeviceLabel((data) => {
+    api.onShowDeviceLabel((data) => {
         const label = document.getElementById('device-label')
         if (label) {
             label.textContent = data.deviceId
@@ -1490,7 +1489,7 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
         }
     })
 
-    window.electronAPI.onDisablePress((_, disabled) => {
+    api.onDisablePress((_, disabled) => {
         const keypad = document.getElementById('keypad')
         const lock = document.getElementById('lockIndicator')
 
@@ -1500,18 +1499,17 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
         }
     })
 
-    window.electronAPI.onAutoHide((_, autoHide) => {
+    api.onAutoHide((_, autoHide) => {
         $state.AutoHideOnLeave = autoHide
     })
 
-    window.electronAPI.onHideEmptyKeys((_, hideEmptyKeys) => {
+    api.onHideEmptyKeys((_, hideEmptyKeys) => {
         $state.HideEmptyKeys = hideEmptyKeys
         //logic to hide empty keys
     })
 
-    window.electronAPI.onIdentify(() => {
-        const keypad = document.getElementById('keypad')
-        if (!keypad) return
+    api.onIdentify(() => {
+        const keypad = $elements.keypad.current!
 
         // Apply flash - yellow in rgba
         keypad.style.backgroundColor = 'rgba(255, 255, 0, 1)'
@@ -1519,34 +1517,31 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
         keypad.style.transition = 'background-color 0.5s ease'
 
         setTimeout(() => {
-            window.electronAPI.invoke('getDeviceConfig', DEVICE_ID).then((config) => {
+            api.getDeviceConfig(DEVICE_ID).then((config) => {
                 console.log('got config:', config)
                 const { backgroundColor, backgroundOpacity } = config
 
-                const keypad = document.getElementById('keypad')
-                if (keypad) {
-                    keypad.style.backgroundColor = hexToRgba(
-                        backgroundColor,
-                        backgroundOpacity ?? 0.5
-                    )
-                }
+                keypad.style.backgroundColor = hexToRgba(
+                    backgroundColor,
+                    backgroundOpacity ?? 0.5
+                )
             })
         }, 800)
     })
 
-    window.electronAPI.onUpdateBackground((_, data) => {
+    api.onUpdateBackground((_, data) => {
         console.log('Updating background:', data)
         const keypad = document.getElementById('keypad')!
         keypad.style.backgroundColor = hexToRgba(data.backgroundColor, data.backgroundOpacity)
     })
 
-    window.electronAPI.onRebuildGrid((_, { columnCount, rowCount }) => {
+    api.onRebuildGrid((_, { columnCount, rowCount }) => {
         $state.Columns = columnCount
         buildKeyGrid(columnCount, rowCount)
     })
 
     // Handle key events from Companion
-    window.electronAPI.onDraw((_event, keyObj) => {
+    api.onDraw((_event, keyObj) => {
         if (keyObj.deviceId !== DEVICE_ID) return
 
         if (!keyStates.has(keyObj.deviceId)) {
@@ -1558,13 +1553,13 @@ const _init = ({ $state, $elements, DEVICE_ID }: _InitOptions) => {
     })
 
     // Handle brightness
-    window.electronAPI.onBrightness((_event, brightness) => {
+    api.onBrightness((_event, brightness) => {
         adjustBrightness(brightness)
     })
 
     // Close button
     document.getElementById('closeButton')!.addEventListener('click', () => {
-        window.electronAPI.invoke('closeKeypad', DEVICE_ID) // Send deviceId so main process knows which to close
+        api.closeKeypad(DEVICE_ID) // Send deviceId so main process knows which to close
     })
 
     /**

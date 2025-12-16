@@ -1,5 +1,8 @@
 // @ts-nocheck
 import React, { useCallback, useEffect } from 'react'
+import { getAPIClient } from '@/api/client'
+
+const api = getAPIClient()
 
 function injectCSS() {
     if (injectCSS.injected) return;
@@ -33,7 +36,7 @@ function ProfilePrompt() {
     const profileNameRef = React.useRef(null);
 
     useEffect(() => {
-        window.electronAPI.getNextProfileName().then((value) => {
+        api.getNextProfileName().then((value) => {
             profileNameRef.current!.value = value
             profileNameRef.current!.focus()
         })
@@ -41,11 +44,11 @@ function ProfilePrompt() {
 
     const submit = useCallback(() => {
         const name = profileNameRef.current!.value
-        window.electronAPI.sendProfileName(name)
+        api.sendProfileName(name)
     }, []);
 
     const cancel = useCallback(() => {
-        window.electronAPI.sendProfileName(null)
+        api.sendProfileName(null)
     }, []);
 
     return (
