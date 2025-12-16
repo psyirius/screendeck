@@ -11,26 +11,31 @@ function themed(children: React.ReactNode) {
     return children; // later we can add theme providers here
 }
 
-function Router() {
+function TinyRouter() {
     const urlParams = new URLSearchParams(window.location.search)
-    const page = urlParams.get('page') || '';
+    const page = urlParams.get('page') || ''
 
-    if (page.endsWith('settings')) {
-        return themed(<Settings />)
-    } else if (page.endsWith('hotkeyPrompt')) {
-        return themed(<HotkeyPrompt />)
-    } else if (page.endsWith('profilePrompt')) {
-        return themed(<ProfilePrompt />)
-    } else {
-        return <Buttons />
+    switch (page) {
+        case 'settings':
+            return themed(<Settings />)
+        case 'hotkeyPrompt':
+            return themed(<HotkeyPrompt />)
+        case 'profilePrompt':
+            return themed(<ProfilePrompt />)
+        default:
+            return <Buttons />
     }
 }
 
 // const target = document.getElementById('root')!
 const target = document.body;
 
-createRoot(target).render(
+const root = createRoot(target);
+
+root.render(
     <StrictMode>
-        <Router />
+        <TinyRouter />
     </StrictMode>
 )
+
+export default root;
