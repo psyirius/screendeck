@@ -1,3 +1,9 @@
+// Logger interface for API adapters
+export interface Logger {
+    log(message: string, ...args: any[]): void
+    error(message: string, ...args: any[]): void
+}
+
 // type Brand<B> = { __brand: B }
 // export type Branded<T, B> = T & Brand<B>
 

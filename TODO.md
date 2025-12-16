@@ -1,9 +1,15 @@
 - [ ] Buttons Not initializing on HotRefresh.
+- [ ] FIX auto hide.
+- [ ] FIX hide on connect.
+- [ ] FIX restore window position on launch.
+- [ ] FIX restore window visible state on launch.
+
+
 - https://github.com/anonrig/electron-server
 - https://github.com/wexond/rpc
 - Optimize canvas rendering performance.
-  - move it to webworker
-  - use offscreencanvas
+    - move it to webworker
+    - use offscreencanvas
 - add multi-touch gestures support
 - add support for custom protocols (eg. myapp://)
 - add more themes/faceplates

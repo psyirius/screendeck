@@ -8,7 +8,8 @@ import {
     AssignHotkeyArgs,
     ClearHotkeyArgs,
     HotkeyContext,
-    Device
+    Device,
+    Logger
 } from './types';
 import { io, Socket } from 'socket.io-client';
 
@@ -30,163 +31,190 @@ declare global {
 
 export class ElectronAPIAdapter implements SharedAPI {
     private api: ElectronAPI;
+    private logger: Logger;
 
     public static available(): boolean {
         return !!window[ELECTRON_API_KEY]
     }
 
-    constructor() {
+    constructor(logger: Logger) {
         if (!ElectronAPIAdapter.available()) {
             throw new Error('Electron API is not available in this environment.')
         }
         this.api = window[ELECTRON_API_KEY]!;
+        this.logger = logger;
+    }
+
+    private async invoke<T>(channel: string, ...args: any[]): Promise<T> {
+        this.logger.log(`[Electron] -> Invoke: ${channel}`, ...args)
+        try {
+            const result = await this.api.invoke(channel, ...args)
+            this.logger.log(`[Electron] <- Result: ${channel}`, result)
+            return result
+        } catch (error) {
+            this.logger.error(`[Electron] <- Error: ${channel}`, error)
+            throw error
+        }
     }
 
     getDeviceConfig(deviceId: string): Promise<DeviceConfig> {
-        return this.api.invoke('getDeviceConfig', deviceId)
+        return this.invoke('getDeviceConfig', deviceId)
     }
     getKeypadBounds(deviceId: string): Promise<any> {
-        return this.api.invoke('getKeypadBounds', deviceId)
+        return this.invoke('getKeypadBounds', deviceId)
     }
     resizeKeypadWindow(args: ResizeKeypadArgs): Promise<void> {
-        return this.api.invoke('resizeKeypadWindow', args)
+        return this.invoke('resizeKeypadWindow', args)
     }
     closeKeypad(deviceId: string): Promise<void> {
-        return this.api.invoke('closeKeypad', deviceId)
+        return this.invoke('closeKeypad', deviceId)
     }
     keyPress(args: KeyPressArgs): void {
+        this.logger.log(`[Electron] -> Send: keyPress`, args)
         this.api.send('keyPress', args)
     }
     getKeyConfig(args: { deviceId: string; keyIndex: number }): Promise<KeyConfig> {
-        return this.api.invoke('getKeyConfig', args)
+        return this.invoke('getKeyConfig', args)
     }
     updateKeyConfig(args: UpdateKeyConfigArgs): Promise<void> {
-        return this.api.invoke('updateKeyConfig', args)
+        return this.invoke('updateKeyConfig', args)
     }
     assignHotkey(args: AssignHotkeyArgs): Promise<boolean> {
-        return this.api.invoke('assignHotkey', args)
+        return this.invoke('assignHotkey', args)
     }
     clearHotkey(args: ClearHotkeyArgs): Promise<boolean> {
-        return this.api.invoke('clearHotkey', args)
+        return this.invoke('clearHotkey', args)
     }
     getHotkeyContext(): Promise<HotkeyContext | undefined> {
-        return this.api.invoke('getHotkeyContext')
+        return this.invoke('getHotkeyContext')
     }
     setHotkeyContext(args: {
         deviceId: string
         keyIndex: number
         imageBase64?: string | null
     }): Promise<void> {
-        return this.api.invoke('setHotkeyContext', args)
+        return this.invoke('setHotkeyContext', args)
     }
 
     openHotkeyPrompt(): Promise<void> {
-        return this.api.invoke('openHotkeyPrompt')
+        return this.invoke('openHotkeyPrompt')
     }
     closeHotkeyPrompt(): Promise<void> {
-        return this.api.invoke('closeHotkeyPrompt')
+        return this.invoke('closeHotkeyPrompt')
     }
     saveSettings(settings: any): Promise<void> {
-        return this.api.invoke('saveSettings', settings)
+        return this.invoke('saveSettings', settings)
     }
     getSettings(): Promise<any> {
-        return this.api.invoke('getSettings')
+        return this.invoke('getSettings')
     }
     getAllDevices(): Promise<Device[]> {
-        return this.api.invoke('getAllDevices')
+        return this.invoke('getAllDevices')
     }
     createNewDevice(): Promise<void> {
-        return this.api.invoke('createNewDevice')
+        return this.invoke('createNewDevice')
     }
     deleteDevice(deviceId: string): Promise<void> {
-        return this.api.invoke('deleteDevice', deviceId)
+        return this.invoke('deleteDevice', deviceId)
     }
     updateDeviceConfig(args: { deviceId: string; config: Partial<DeviceConfig> }): Promise<void> {
-        return this.api.invoke('updateDeviceConfig', args)
+        return this.invoke('updateDeviceConfig', args)
     }
     getNextProfileName(): Promise<string> {
-        return this.api.invoke('getNextProfileName')
+        return this.invoke('getNextProfileName')
     }
     sendProfileName(name: string): void {
+        this.logger.log(`[Electron] -> Send: profileNameResult`, name)
         this.api.send('profileNameResult', name)
     }
 
     // Event Listeners - Wrappers
-    // Note: The Electron preload exposes specific methods like onDraw.
-    // We'll wrap them to return a "remove listener" function if possible, or just accept the platform behavior.
-    // Electron's preload methods usually just add listeners. Removing is trickier unless exposed.
-    // The preload defines `onDraw: (callback) => ipcRenderer.on('draw', ...)`
-    // It does NOT return a cleanup function. For now, we will just call the method.
-    // Future improvement: Update preload to return a cleanup or expose ipcRenderer.removeListener.
+    private wrapListener(event: string, callback: (...args: any[]) => void): () => void {
+        const wrapper = (...args: any[]) => {
+            this.logger.log(`[Electron] <- Event: ${event}`, ...args)
+            callback(...args)
+        }
+        this.api.on(event, wrapper)
+        return () => {
+            // No removal available on api interface yet
+        }
+    }
 
     onDraw(callback: (event: any, keyObj: any) => void): () => void {
-        this.api.on('draw', (event, data) => callback(event, data))
-        return () => {} // No cleanup available in current preload
+        return this.wrapListener('draw', (event, data) => callback(event, data))
     }
     onShowDeviceLabel(callback: (data: { show: boolean; deviceId: string }) => void): () => void {
-        this.api.on('showDeviceLabel', (_, data) => callback(data))
-        return () => {}
+        return this.wrapListener('showDeviceLabel', (_, data) => callback(data))
     }
     onDisablePress(callback: (event: any, disabled: boolean) => void): () => void {
-        this.api.on('disablePress', (event, data) => callback(event, data))
-        return () => {}
+        return this.wrapListener('disablePress', (event, data) => callback(event, data))
     }
     onAutoHide(callback: (event: any, autoHide: boolean) => void): () => void {
-        this.api.on('autoHide', (event, data) => callback(event, data))
-        return () => {}
+        return this.wrapListener('autoHide', (event, data) => callback(event, data))
     }
     onHideEmptyKeys(callback: (event: any, hideEmptyKeys: boolean) => void): () => void {
-        this.api.on('hideEmptyKeys', (event, data) => callback(event, data))
-        return () => {}
+        return this.wrapListener('hideEmptyKeys', (event, data) => callback(event, data))
     }
     onUpdateBackground(
         callback: (event: any, data: { backgroundColor: string; backgroundOpacity: number }) => void
     ): () => void {
-        this.api.on('updateBackground', (event, data) => callback(event, data))
-        return () => {}
+        return this.wrapListener('updateBackground', (event, data) => callback(event, data))
     }
     onRebuildGrid(
         callback: (event: any, data: { columnCount: number; rowCount: number }) => void
     ): () => void {
-        this.api.on('rebuildGrid', (event, data) => callback(event, data))
-        return () => {}
+        return this.wrapListener('rebuildGrid', (event, data) => callback(event, data))
     }
     onBrightness(callback: (event: any, brightness: number) => void): () => void {
-        this.api.on('brightness', (event, brightness) => callback(event, brightness))
-        return () => {}
+        return this.wrapListener('brightness', (event, brightness) => callback(event, brightness))
     }
     onIdentify(callback: () => void): () => void {
-        this.api.on('identify', () => callback())
-        return () => {}
+        return this.wrapListener('identify', () => callback())
     }
     onClearDeck(callback: () => void): () => void {
-        this.api.on('clearDeck', () => callback())
-        return () => {}
+        return this.wrapListener('clearDeck', () => callback())
     }
     onLockedState(callback: (event: any, data: any) => void): () => void {
-        this.api.on('lockedState', (event, data) => callback(event, data))
-        return () => {}
+        return this.wrapListener('lockedState', (event, data) => callback(event, data))
     }
     onKeyEvent(callback: (event: any, keyObj: any) => void): () => void {
-        this.api.on('keyEvent', (event, keyObj) => callback(event, keyObj))
-        return () => {}
+        return this.wrapListener('keyEvent', (event, keyObj) => callback(event, keyObj))
     }
 }
 
 export class SocketIOAPIAdapter implements SharedAPI {
     private socket: Socket;
+    private logger: Logger;
 
-    constructor() {
+    constructor(logger: Logger) {
+        this.logger = logger;
         // Connect to the server. Assumes server is serving socket.io.
         // If specific URL needed, it can be passed or configured.
         this.socket = io();
+        this.socket.on('connect', () => {
+            this.logger.log('[SocketIO] Connected')
+        })
+        this.socket.on('disconnect', () => {
+            this.logger.log('[SocketIO] Disconnected')
+        })
+        this.socket.on('connect_error', (err) => {
+            this.logger.error('[SocketIO] Connection Error', err)
+        })
     }
     private async request<T>(event: string, ...args: any[]): Promise<T> {
-        const response = await this.socket.emitWithAck(event, ...args)
-        if (response && response.success) {
-            return response.data
+        this.logger.log(`[SocketIO] -> Request: ${event}`, ...args)
+        try {
+            const response = await this.socket.emitWithAck(event, ...args)
+            if (response && response.success) {
+                this.logger.log(`[SocketIO] <- Response: ${event}`, response.data)
+                return response.data
+            }
+            this.logger.error(`[SocketIO] <- Error: ${event}`, response?.error)
+            throw new Error(response?.error || 'Unknown error')
+        } catch (error) {
+            this.logger.error(`[SocketIO] <- Fail: ${event}`, error)
+            throw error
         }
-        throw new Error(response?.error || 'Unknown error')
     }
 
     getDeviceConfig(deviceId: string): Promise<DeviceConfig> {
@@ -202,7 +230,8 @@ export class SocketIOAPIAdapter implements SharedAPI {
         return this.request('closeKeypad', deviceId)
     }
     keyPress(args: KeyPressArgs): void {
-        this.socket.emit('keyPress', args);
+        this.logger.log(`[SocketIO] -> Emit: keyPress`, args)
+        this.socket.emit('keyPress', args)
     }
     getKeyConfig(args: { deviceId: string; keyIndex: number }): Promise<KeyConfig> {
         return this.request('getKeyConfig', args)
@@ -258,15 +287,20 @@ export class SocketIOAPIAdapter implements SharedAPI {
         return this.request('getNextProfileName')
     }
     sendProfileName(name: string): void {
-        this.socket.emit('profileNameResult', name);
+        this.logger.log(`[SocketIO] -> Emit: profileNameResult`, name)
+        this.socket.emit('profileNameResult', name)
     }
 
     // Event Listeners
     private wrapListener(event: string, callback: (...args: any[]) => void): () => void {
-        this.socket.on(event, callback);
+        const wrapper = (...args: any[]) => {
+            this.logger.log(`[SocketIO] <- Event: ${event}`, ...args)
+            callback(...args)
+        }
+        this.socket.on(event, wrapper)
         return () => {
-            this.socket.off(event, callback);
-        };
+            this.socket.off(event, wrapper)
+        }
     }
 
     onDraw(callback: (event: any, keyObj: any) => void): () => void {
@@ -311,18 +345,30 @@ export class SocketIOAPIAdapter implements SharedAPI {
     }
 }
 
+// ConsoleLogger implementation
+export const ConsoleLogger: Logger = {
+    log(message: string, ...args: any[]): void {
+        console.log(message, ...args)
+    },
+    error(message: string, ...args: any[]): void {
+        console.error(message, ...args)
+    }
+}
+
 // Factory
 let clientInstance: SharedAPI | null = null;
 
 export function getAPIClient(): SharedAPI {
     if (clientInstance) return clientInstance;
 
+    const logger = ConsoleLogger;
+
     if (ElectronAPIAdapter.available()) {
-        console.log('Using Electron API Adapter')
-        clientInstance = new ElectronAPIAdapter()
+        logger.log('Using Electron API Adapter')
+        clientInstance = new ElectronAPIAdapter(logger)
     } else {
-        console.log('Using Socket.IO API Adapter')
-        clientInstance = new SocketIOAPIAdapter()
+        logger.log('Using Socket.IO API Adapter')
+        clientInstance = new SocketIOAPIAdapter(logger)
     }
     return clientInstance;
 }
