@@ -78,6 +78,7 @@ export interface HotkeyContext {
 
 export interface SharedAPI {
     // Requests
+    deviceInit(deviceId: string): Promise<DeviceConfig>
     getDeviceConfig(deviceId: string): Promise<DeviceConfig>
     getKeypadBounds(deviceId: string): Promise<any>
     resizeKeypadWindow(args: ResizeKeypadArgs): Promise<void>
@@ -90,13 +91,13 @@ export interface SharedAPI {
     getHotkeyContext(): Promise<HotkeyContext | undefined>
     openHotkeyPrompt(): Promise<void>
     closeHotkeyPrompt(): Promise<void>
-    saveSettings(settings: any): Promise<void>;
-    getSettings(): Promise<any>;
-    getAllDevices(): Promise<Device[]>;
-    createNewDevice(): Promise<void>;
-    deleteDevice(deviceId: string): Promise<void>;
-    updateDeviceConfig(args: { deviceId: string; config: Partial<DeviceConfig> }): Promise<void>;
-    getNextProfileName(): Promise<string>;
+    saveSettings(settings: any): Promise<void>
+    getSettings(): Promise<any>
+    getAllDevices(): Promise<Device[]>
+    createNewDevice(): Promise<void>
+    deleteDevice(deviceId: string): Promise<void>
+    updateDeviceConfig(args: { deviceId: string; config: Partial<DeviceConfig> }): Promise<void>
+    getNextProfileName(): Promise<string>
     sendProfileName(name: string): void
     setHotkeyContext(args: {
         deviceId: string
@@ -113,7 +114,9 @@ export interface SharedAPI {
     onUpdateBackground(
         callback: (event: any, data: { backgroundColor: string; backgroundOpacity: number }) => void
     ): () => void
-    onRebuildGrid(callback: (event: any, data: { columnCount: number; rowCount: number }) => void): () => void;
+    onRebuildGrid(
+        callback: (event: any, data: { columnCount: number; rowCount: number }) => void
+    ): () => void
     onBrightness(callback: (event: any, brightness: number) => void): () => void
     onIdentify(callback: () => void): () => void
     onClearDeck(callback: () => void): () => void

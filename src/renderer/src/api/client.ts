@@ -30,8 +30,8 @@ declare global {
 }
 
 export class ElectronAPIAdapter implements SharedAPI {
-    private api: ElectronAPI;
-    private logger: Logger;
+    private api: ElectronAPI
+    private logger: Logger
 
     public static available(): boolean {
         return !!window[ELECTRON_API_KEY]
@@ -41,8 +41,8 @@ export class ElectronAPIAdapter implements SharedAPI {
         if (!ElectronAPIAdapter.available()) {
             throw new Error('Electron API is not available in this environment.')
         }
-        this.api = window[ELECTRON_API_KEY]!;
-        this.logger = logger;
+        this.api = window[ELECTRON_API_KEY]!
+        this.logger = logger
     }
 
     private async invoke<T>(channel: string, ...args: any[]): Promise<T> {
@@ -57,6 +57,9 @@ export class ElectronAPIAdapter implements SharedAPI {
         }
     }
 
+    deviceInit(deviceId: string): Promise<DeviceConfig> {
+        return this.invoke('deviceInit', deviceId)
+    }
     getDeviceConfig(deviceId: string): Promise<DeviceConfig> {
         return this.invoke('getDeviceConfig', deviceId)
     }
@@ -183,14 +186,14 @@ export class ElectronAPIAdapter implements SharedAPI {
 }
 
 export class SocketIOAPIAdapter implements SharedAPI {
-    private socket: Socket;
-    private logger: Logger;
+    private socket: Socket
+    private logger: Logger
 
     constructor(logger: Logger) {
-        this.logger = logger;
+        this.logger = logger
         // Connect to the server. Assumes server is serving socket.io.
         // If specific URL needed, it can be passed or configured.
-        this.socket = io();
+        this.socket = io()
         this.socket.on('connect', () => {
             this.logger.log('[SocketIO] Connected')
         })
@@ -217,6 +220,9 @@ export class SocketIOAPIAdapter implements SharedAPI {
         }
     }
 
+    deviceInit(deviceId: string): Promise<DeviceConfig> {
+        return this.request('deviceInit', deviceId)
+    }
     getDeviceConfig(deviceId: string): Promise<DeviceConfig> {
         return this.request('getDeviceConfig', deviceId)
     }
@@ -277,10 +283,7 @@ export class SocketIOAPIAdapter implements SharedAPI {
     deleteDevice(deviceId: string): Promise<void> {
         return this.request('deleteDevice', deviceId)
     }
-    updateDeviceConfig(args: {
-        deviceId: string
-        config: Partial<DeviceConfig>
-    }): Promise<void> {
+    updateDeviceConfig(args: { deviceId: string; config: Partial<DeviceConfig> }): Promise<void> {
         return this.request('updateDeviceConfig', args)
     }
     getNextProfileName(): Promise<string> {
@@ -304,44 +307,48 @@ export class SocketIOAPIAdapter implements SharedAPI {
     }
 
     onDraw(callback: (event: any, keyObj: any) => void): () => void {
-        return this.wrapListener('draw', (keyObj) => callback(null, keyObj)); // SocketIO might just send data, no event obj
+        return this.wrapListener('draw', (keyObj) => callback(null, keyObj)) // SocketIO might just send data, no event obj
     }
 
     // Note: Socket.IO args might slightly differ (no synthetic event object usually).
     // Adapting callback signatures to match expected SharedAPI signature.
 
     onShowDeviceLabel(callback: (data: { show: boolean; deviceId: string }) => void): () => void {
-        return this.wrapListener('showDeviceLabel', (data) => callback(data)); // assuming data comes as first arg
+        return this.wrapListener('showDeviceLabel', (data) => callback(data)) // assuming data comes as first arg
     }
     onDisablePress(callback: (event: any, disabled: boolean) => void): () => void {
-        return this.wrapListener('disablePress', (disabled) => callback(null, disabled));
+        return this.wrapListener('disablePress', (disabled) => callback(null, disabled))
     }
     onAutoHide(callback: (event: any, autoHide: boolean) => void): () => void {
-        return this.wrapListener('autoHide', (autoHide) => callback(null, autoHide));
+        return this.wrapListener('autoHide', (autoHide) => callback(null, autoHide))
     }
     onHideEmptyKeys(callback: (event: any, hideEmptyKeys: boolean) => void): () => void {
-        return this.wrapListener('hideEmptyKeys', (hideEmptyKeys) => callback(null, hideEmptyKeys));
+        return this.wrapListener('hideEmptyKeys', (hideEmptyKeys) => callback(null, hideEmptyKeys))
     }
-    onUpdateBackground(callback: (event: any, data: { backgroundColor: string; backgroundOpacity: number }) => void): () => void {
-        return this.wrapListener('updateBackground', (data) => callback(null, data));
+    onUpdateBackground(
+        callback: (event: any, data: { backgroundColor: string; backgroundOpacity: number }) => void
+    ): () => void {
+        return this.wrapListener('updateBackground', (data) => callback(null, data))
     }
-    onRebuildGrid(callback: (event: any, data: { columnCount: number; rowCount: number }) => void): () => void {
-        return this.wrapListener('rebuildGrid', (data) => callback(null, data));
+    onRebuildGrid(
+        callback: (event: any, data: { columnCount: number; rowCount: number }) => void
+    ): () => void {
+        return this.wrapListener('rebuildGrid', (data) => callback(null, data))
     }
     onBrightness(callback: (event: any, brightness: number) => void): () => void {
-        return this.wrapListener('brightness', (brightness) => callback(null, brightness));
+        return this.wrapListener('brightness', (brightness) => callback(null, brightness))
     }
     onIdentify(callback: () => void): () => void {
-        return this.wrapListener('identify', callback);
+        return this.wrapListener('identify', callback)
     }
     onClearDeck(callback: () => void): () => void {
-        return this.wrapListener('clearDeck', callback);
+        return this.wrapListener('clearDeck', callback)
     }
     onLockedState(callback: (event: any, data: any) => void): () => void {
-        return this.wrapListener('lockedState', (data) => callback(null, data));
+        return this.wrapListener('lockedState', (data) => callback(null, data))
     }
     onKeyEvent(callback: (event: any, keyObj: any) => void): () => void {
-        return this.wrapListener('keyEvent', (keyObj) => callback(null, keyObj));
+        return this.wrapListener('keyEvent', (keyObj) => callback(null, keyObj))
     }
 }
 

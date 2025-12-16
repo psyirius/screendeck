@@ -17,8 +17,7 @@ import { globalContext } from './global'
 const store = new Store({ defaults: defaultSettings })
 
 export function initializeIpcHandlers() {
-    // TODO: IPC
-    ipcMain.handle('getDeviceConfig', (_event, deviceId) => {
+    const getDeviceConfig = (deviceId: string) => {
         const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
         const rowCount = store.get(`device.${deviceId}.rowCount`, 4)
         const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
@@ -42,7 +41,12 @@ export function initializeIpcHandlers() {
             backgroundColor,
             backgroundOpacity,
         }
-    })
+    }
+
+    // TODO: IPC
+    ipcMain.handle('getDeviceConfig',
+        (_, deviceId) => getDeviceConfig(deviceId)
+    );
 
     // TODO: IPC
     ipcMain.handle('getKeypadBounds', (_event, deviceId) => {
@@ -478,6 +482,38 @@ export function initializeIpcHandlers() {
                 createSatellite() // Your function to initialize the Satellite client
             }, 500)
         }
+    })
+
+    // TODO: IPC
+    ipcMain.handle('deviceInit', async (_, deviceId: string) => {
+        console.log('Device init requested for deviceId:', deviceId);
+
+        // validate device id
+        const deviceConfig = store.get(`device.${deviceId}.columnCount`)
+        if (!deviceConfig) {
+            throw new Error(`Device ${deviceId} not found in store.`)
+        }
+
+        if (!globalContext.satelliteClient) {
+            throw new Error('Satellite client not initialized yet.');
+        }
+
+        globalContext.satelliteClient.removeDevice(deviceId);
+
+        await new Promise((resolve) => setTimeout(resolve, 500))
+
+        // add the device again (so that we get draw commands)
+        globalContext.satelliteClient!.addDevice(deviceId, 'ScreenDeck', {
+            columnCount: store.get(`device.${deviceId}.columnCount`, 8),
+            rowCount: store.get(`device.${deviceId}.rowCount`, 4),
+            bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
+            colours: true,
+            text: true,
+            brightness: true,
+            pincodeMap: null,
+        })
+
+        return getDeviceConfig(deviceId);
     })
 
     // TODO: IPC

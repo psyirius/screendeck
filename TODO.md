@@ -1,9 +1,9 @@
-- [ ] Buttons Not initializing on HotRefresh.
 - [ ] FIX auto hide.
 - [ ] FIX hide on connect.
 - [ ] FIX restore window position on launch.
 - [ ] FIX restore window visible state on launch.
-
+- [ ] Reflect Device Connection State to Companion.
+- [ ] Or Cache the device state until Companion connects.
 
 - https://github.com/anonrig/electron-server
 - https://github.com/wexond/rpc
