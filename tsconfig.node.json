@@ -3,6 +3,7 @@
     "include": [
         "electron.vite.config.*",
         "electron/legacy/**/*",
+        "electron/shared/**/*",
         "electron/main/**/*",
         "electron/preload/**/*"
     ],
