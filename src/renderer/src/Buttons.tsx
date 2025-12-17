@@ -800,6 +800,42 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         buildKeyGrid(columnCount, rowCount)
     })
 
+    // Handle mobile background/foreground state
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            console.log('Page became visible, refreshing connection...')
+
+            // Show loading message
+            const loadingMessage = $elements.loadingMessage.current!
+            loadingMessage.style.display = 'block'
+
+            // Re-register device to ensure we get fresh state/connection
+            api.deviceInit(DEVICE_ID).then((config) => {
+                console.log('Device re-initialized after background state:', config)
+                // If grid dimensions changed, rebuild. Otherwise, we assume the server
+                // will send 'draw' events for the keys as part of the re-init process.
+                if (config.columnCount !== $state.Columns || config.rowCount !== $state.Rows) {
+                    $state.Columns = config.columnCount || 0
+                    $state.Rows = config.rowCount || 0
+                    buildKeyGrid($state.Columns, $state.Rows)
+                }
+
+                // Hide loading message once init is done (or short delay to ensure keys are drawn)
+                // We rely on subsequent 'draw' events to populate keys, so we might want to keep
+                // it briefly or rely on processKey to hide it if we wanted perfect sync,
+                // but deviceInit promise usually means config is ready.
+                // Let's hide it after a short safety delay or let processKey handle it if it was global.
+                // For now, hiding it here is better than stuck.
+                setTimeout(() => {
+                    loadingMessage.style.display = 'none'
+                }, 500)
+            }).catch(() => {
+                // Hide on error too
+                loadingMessage.style.display = 'none'
+            })
+        }
+    })
+
     /**
      * Builds the grid of key elements based on the device configuration.
      * @param {number} columnCount - Number of columns in the grid.

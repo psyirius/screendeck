@@ -29,9 +29,9 @@
 - OLED like filter for the key canvas.
 - in mobile web:
   - prevent screen dimming/sleeping while in use.
-  - aware of minimize and backgrounding.
-    - when backgrounded, pause updates to conserve battery.
-    - when foregrounded, resume updates. (may need to re-establish connection)
+- make page foreground from background speed.
+  - cache the key states in memory of backend.
+  - when page is foregrounded, quickly redraw all keys from cache. without waiting for companion state.
 - Mobile native app?
 - Migrate to expo?
 
