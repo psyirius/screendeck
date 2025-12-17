@@ -20,6 +20,8 @@ const styles = `
         align-items: center;
         height: 100vh;
         background: transparent;
+        /* Prevent pull-to-refresh and overscroll effects */
+        overscroll-behavior: none;
     }
 
     /* Draggable area that encapsulates the keypad */
@@ -37,9 +39,16 @@ const styles = `
         /* display: grid; */ /* we set it later */
         gap: 10px;
         padding: 20px;
+        /* Safe area insets for notched devices */
+        padding-top: max(20px, env(safe-area-inset-top));
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
         background: rgba(0, 0, 0, 0.5);
         /* border-radius: 8px; */
         /*backdrop-filter: blur(10px);*/
+        /* Prevent unwanted touch gestures */
+        touch-action: manipulation;
     }
 
     #keypad {
@@ -74,10 +83,26 @@ const styles = `
         cursor: pointer;
         overflow: hidden;
         box-sizing: border-box;
+        /* Smooth transitions for visual feedback */
+        transition: transform 0.1s ease, filter 0.1s ease;
+        /* Prevent touch delays and unwanted gestures */
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .key:hover {
         background-color: #555;
+    }
+
+    /* Visual touch/press feedback */
+    .key.pressed {
+        transform: scale(0.92);
+        filter: brightness(0.8);
+    }
+
+    .key:active {
+        transform: scale(0.92);
+        filter: brightness(0.8);
     }
 
     .key.encoder {
@@ -1044,6 +1069,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         key.addEventListener('touchstart', (e: TouchEvent) => {
             e.preventDefault() // Prevent mouse event emulation
             triggerHapticFeedback()
+            key.classList.add('pressed') // Visual feedback
 
             if (isEncoder) {
                 const touch = e.touches[0]
@@ -1084,7 +1110,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     window.removeEventListener('touchmove', onTouchMove)
                     window.removeEventListener('touchend', onTouchEnd)
                     window.removeEventListener('touchcancel', onTouchEnd)
-                    key.classList.remove('rotateLeft', 'rotateRight')
+                    key.classList.remove('rotateLeft', 'rotateRight', 'pressed')
                 }
 
                 window.addEventListener('touchmove', onTouchMove, { passive: false })
@@ -1098,11 +1124,13 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
 
         key.addEventListener('touchend', (e: TouchEvent) => {
             e.preventDefault()
+            key.classList.remove('pressed') // Remove visual feedback
             activeKeys.delete(i)
             sendKeyPress(i, 'up')
         }, { passive: false })
 
         key.addEventListener('touchcancel', () => {
+            key.classList.remove('pressed') // Remove visual feedback
             activeKeys.delete(i)
             sendKeyPress(i, 'up')
         })
