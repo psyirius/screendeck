@@ -23,17 +23,19 @@
 - [ ] Physical StreamDeck like Look.
 - [ ] Fix some or all keys rendered blank sometimes.
 - [ ] Resize Deck Window on Device configuration change.
-- [ ] key rendering optimizations. (commit: 1f067314e2705e8e38363bb1aa548c4edfd18147)
-  - introduced some glitches at the edges of the keys.
+- [ ] below commit introduced some glitches at the edges of the keys.
+  - key rendering optimizations. (commit: 1f067314e2705e8e38363bb1aa548c4edfd18147)
 - add more controls. (use surface devices from satellite repo)
 - OLED like filter for the key canvas.
 - in mobile web:
   - prevent screen dimming/sleeping while in use.
+- update all instances of the surface when device config changes.
+  - when a key is toggled into an encoder, all instances of that surface should update.
 - make page foreground from background speed.
   - cache the key states in memory of backend.
   - when page is foregrounded, quickly redraw all keys from cache. without waiting for companion state.
-- Mobile native app?
-- Migrate to expo?
+- Mobile native app? for more natural feel.
+- PWA?
 
 ## GitHub issues
 - [ ] Show ScreenDeck on startup
@@ -50,10 +52,6 @@
 
 - https://github.com/anonrig/electron-server
 - https://github.com/wexond/rpc
-- Optimize canvas rendering performance.
-    - move it to webworker
-    - use offscreencanvas
-- add multi-touch gestures support
 - add support for custom protocols (eg. myapp://)
 - add more themes/faceplates
 
