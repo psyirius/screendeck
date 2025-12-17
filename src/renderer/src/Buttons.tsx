@@ -442,6 +442,41 @@ const styles = `
         opacity: 1;
         pointer-events: auto;
     }
+
+    /* Reduced motion support for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        /* Disable all animations */
+        .key.animate-in {
+            animation: none;
+        }
+
+        .key.hidden-init {
+            opacity: 1;
+            transform: none;
+        }
+
+        #loadingMessage img {
+            animation: none;
+        }
+
+        /* Remove transitions */
+        .key,
+        .key.encoder,
+        .keypad,
+        #logoOverlay,
+        #keypad,
+        .close-button,
+        .lock-indicator,
+        .context-menu {
+            transition: none !important;
+        }
+
+        /* Keep encoder rotation visual but instant */
+        .key.encoder.rotateLeft,
+        .key.encoder.rotateRight {
+            transition: none;
+        }
+    }
 `
 
 const InjectStyles = () => (
@@ -1118,6 +1153,11 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
      * @param {HTMLElement} key - The key element.
      */
     function triggerEncoderTick(key: HTMLElement) {
+        // Respect user's reduced motion preference
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return // Skip animation entirely
+        }
+
         // Cancel existing tick animations to prevent "composite: add" stacking issues
         // which could cause extreme scaling/glitches during rapid rotation
         key.getAnimations().forEach(anim => {
