@@ -407,7 +407,7 @@ interface KeyData {
     textColor?: string
     color?: string
     fontSize?: number
-    imageBase64?: string
+    image?: Uint8Array | ArrayBuffer
     isEncoder?: boolean
     stepSize?: number
 }
@@ -431,15 +431,11 @@ const Key = React.memo(({ index, deviceId, data, onPress, onContextMenu }: KeyPr
 
     // Bitmap Rendering Effect
     React.useEffect(() => {
-        if (!data?.imageBase64 || !canvasRef.current) return
+        if (!data?.image || !canvasRef.current) return
 
         const render = async () => {
             try {
-                const binary = atob(data.imageBase64!)
-                const bytes = new Uint8Array(binary.length)
-                for (let i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i)
-                }
+                const bytes = new Uint8Array(data.image)
 
                 const size = Math.sqrt(bytes.length / 3)
                 if (!Number.isInteger(size)) return // Invalid Check
@@ -467,7 +463,7 @@ const Key = React.memo(({ index, deviceId, data, onPress, onContextMenu }: KeyPr
         }
 
         requestAnimationFrame(() => render())
-    }, [data?.imageBase64])
+    }, [data?.image])
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button === 2) return // Ignore right click (handled by context menu)
@@ -543,7 +539,7 @@ const Key = React.memo(({ index, deviceId, data, onPress, onContextMenu }: KeyPr
             data-index={index}
         >
             {/* If we have a bitmap, show canvas */}
-            {data?.imageBase64 ? (
+            {data?.image ? (
                 <canvas
                     ref={canvasRef}
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
@@ -866,7 +862,7 @@ const NewButtons = () => {
                 api.setHotkeyContext({
                     deviceId,
                     keyIndex: index,
-                    imageBase64: keyConfig?.imageBase64,
+                    image: keyConfig?.image,
                 })
                 api.openHotkeyPrompt()
             }

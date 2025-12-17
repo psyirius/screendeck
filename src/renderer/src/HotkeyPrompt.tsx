@@ -66,14 +66,10 @@ td {
     injectCSS.injected = true
 }
 
-function renderBitmap(container, bitmapBase64) {
+function renderBitmap(container, bitmap) {
     requestAnimationFrame(() => {
         try {
-            const binary = atob(bitmapBase64)
-            const bytes = new Uint8Array(binary.length)
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i)
-            }
+            const bytes = new Uint8Array(bitmap)
 
             const size = Math.sqrt(bytes.length / 3)
             if (!Number.isInteger(size)) {
@@ -132,8 +128,8 @@ const _init = () => {
         // If there's a bitmap, show it
         const keyPreview = document.getElementById('keyPreview')
         keyPreview.innerHTML = '' // Clear previous content
-        if (data.imageBase64) {
-            renderBitmap(keyPreview, data.imageBase64)
+        if (data?.image) {
+            renderBitmap(keyPreview, data.image)
         }
 
         // Load current hotkeys
@@ -185,8 +181,8 @@ const _init = () => {
             container.style.verticalAlign = 'middle'
             tdCanvas.appendChild(container)
 
-            if (h.imageBase64) {
-                renderBitmap(container, h.imageBase64)
+            if (h.image) {
+                renderBitmap(container, h.image)
             }
 
             tr.appendChild(tdCanvas)

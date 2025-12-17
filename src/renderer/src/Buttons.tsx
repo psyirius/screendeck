@@ -394,7 +394,7 @@ const InjectStyles = () => (
 //     textColor?: string
 //     color?: string
 //     fontSize?: number
-//     imageBase64?: string
+//     image?: Uint8Array | ArrayBuffer
 //     isEncoder?: boolean
 //     stepSize?: number
 // }
@@ -437,18 +437,13 @@ const InjectStyles = () => (
 //
 //     // Bitmap Rendering Effect
 //     React.useEffect(() => {
-//         if (!data?.imageBase64 || !canvasRef.current) return
+//         if (!data?.image || !canvasRef.current) return
 //
-//         function renderBitmap(imageBase64: string) {
+//         function renderBitmap(image: Uint8Array | ArrayBuffer) {
 //             console.log('Rendering bitmap for key', index);
 //
 //             try {
-//                 const binary = atob(imageBase64)
-//                 const bytes = new Uint8Array(binary.length)
-//
-//                 for (let i = 0; i < binary.length; i++) {
-//                     bytes[i] = binary.charCodeAt(i)
-//                 }
+//                 const bytes = new Uint8Array(image)
 //
 //                 const size = Math.sqrt(bytes.length / 3)
 //                 if (!Number.isInteger(size)) {
@@ -481,8 +476,8 @@ const InjectStyles = () => (
 //             }
 //         }
 //
-//         requestAnimationFrame(() => renderBitmap(data.imageBase64!));
-//     }, [data?.imageBase64]);
+//         requestAnimationFrame(() => renderBitmap(data.image!));
+//     }, [data?.image]);
 //
 //     let decodedText = ''
 //     if (data?.text) {
@@ -507,11 +502,11 @@ const InjectStyles = () => (
 //             onMouseUp={_onMouseUp}
 //             style={{
 //                 backgroundColor: data.color || '',
-//                 display: hideIfEmpty && !data.imageBase64 && !data.text && !data.color ? 'none' : 'flex'
+//                 display: hideIfEmpty && !data.image && !data.text && !data.color ? 'none' : 'flex'
 //             }}
 //         >
 //             {/* If we have a bitmap, show canvas */}
-//             {data.imageBase64 && (
+//             {data.image && (
 //                 <canvas ref={canvasRef} />
 //             )}
 //             {/* If we have text, show it */}
@@ -578,7 +573,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 bitmap: string | null
                 text: string | null
                 color: string | null
-                imageBase64: string | null
+                image: Uint8Array | ArrayBuffer | null
             }
         >
     >() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
@@ -877,11 +872,10 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 }).then(() => refreshKey(DEVICE_ID, keyIndex))
             } else if (action === 'hotkey') {
                 let keyConfig = keyStates.get(DEVICE_ID)?.get(keyIndex)
-                let imageBase64 = keyConfig?.imageBase64 || null
                 api.setHotkeyContext({
                     deviceId: DEVICE_ID,
                     keyIndex,
-                    imageBase64,
+                    image: keyConfig?.image || null,
                 })
                 api.openHotkeyPrompt()
             }
@@ -1164,7 +1158,6 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         keypad.style.display = 'grid'
 
         const keyIndex = keyObj.keyIndex
-        const bitmap = keyObj.imageBase64
         const { color, textColor, text, fontSize } = keyObj
 
         if (keyIndex < 0 || keyIndex >= keyElements.length) {
@@ -1188,7 +1181,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         // let isEmpty = !bitmap && !color && !text
 
         if ($state.HideEmptyKeys) {
-            if (keyObj.imageBase64 || keyObj.text || keyObj.color) {
+            if (keyObj.image || keyObj.text || keyObj.color) {
                 keyElement.style.display = 'flex'
             } else {
                 keyElement.style.display = 'none'
@@ -1198,6 +1191,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         }
 
         // If Companion sends a bitmap, render it
+        const bitmap = keyObj.image
         if (bitmap) {
             renderBitmap(keyElement, bitmap, keyIndex)
             return
@@ -1244,17 +1238,14 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     /**
      * Renders a raw RGB bitmap onto a canvas within the key element.
      * @param {HTMLElement} container - The key element container.
-     * @param {string} bitmapBase64 - Base64 encoded raw RGB bitmap data.
+     * @param {Uint8Array | ArrayBuffer} bitmap - Base64 encoded raw RGB bitmap data.
+     * @param {number} keyIndex - The index of the key.
      */
-    function renderBitmap(container, bitmapBase64, keyIndex) {
+    function renderBitmap(container, bitmap, keyIndex) {
         requestAnimationFrame(() => {
             console.log('Rendering bitmap for key', keyIndex)
             try {
-                const binary = atob(bitmapBase64)
-                const bytes = new Uint8Array(binary.length)
-                for (let i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i)
-                }
+                const bytes = new Uint8Array(bitmap)
 
                 const size = Math.sqrt(bytes.length / 3)
                 if (!Number.isInteger(size)) {
@@ -1315,6 +1306,8 @@ function LegacyButtons() {
     const deviceLabelRef = React.useRef<HTMLDivElement>(null);
     const loadingMessageRef = React.useRef<HTMLDivElement>(null)
 
+    // initialization effect
+    // TODO: stagger animation on init keys
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search)
         const deviceId = urlParams.get('deviceId')
@@ -1372,6 +1365,7 @@ function LegacyButtons() {
     });
 
     const [draggingIntent, setDraggingIntent] = React.useState(false);
+    const draggerOverlay = React.useRef<HTMLDivElement>(null)
 
     if (api.is('electron')) {
         // an effect to listen for ctrl key down/up to show dragging intent
@@ -1379,36 +1373,42 @@ function LegacyButtons() {
             // TODO: improve accessibility
 
             function onKeyDown(e: KeyboardEvent) {
-                console.log('key down:', e.key);
+                console.log('key down:', e.key)
                 if (e.key === 'Control') {
                     setDraggingIntent(true)
                 }
             }
             function onKeyUp(e: KeyboardEvent) {
-                console.log('key up:', e.key);
+                console.log('key up:', e.key)
                 if (e.key === 'Control') {
                     setDraggingIntent(false)
                 }
             }
 
             // also handle when mouse enters the window with ctrl already held down
-            function onMouseEnter(e: MouseEvent) {
-                console.log('mouse enter:', e.ctrlKey)
+            function onMouseOver(e: MouseEvent) {
+                console.log('mouse over:', e.ctrlKey)
                 if (e.ctrlKey) {
                     setDraggingIntent(true)
                 }
             }
+            function onMouseLeave(e: MouseEvent) {
+                console.log('mouse leave:', e.ctrlKey)
+                setDraggingIntent(false)
+            }
 
             window.addEventListener('keydown', onKeyDown)
             window.addEventListener('keyup', onKeyUp)
-            window.addEventListener('mouseenter', onMouseEnter)
+            window.addEventListener('mouseover', onMouseOver)
+            window.addEventListener('mouseleave', onMouseLeave)
 
             return () => {
                 window.removeEventListener('keydown', onKeyDown)
                 window.removeEventListener('keyup', onKeyUp)
-                window.removeEventListener('mouseenter', onMouseEnter)
+                window.removeEventListener('mouseover', onMouseOver)
+                window.removeEventListener('mouseleave', onMouseLeave)
             }
-        }, []);
+        }, [])
     }
 
     return (
@@ -1481,6 +1481,7 @@ function LegacyButtons() {
             {/* Drag Layer when control is clicked */}
             {api.is('electron') && (
                 <div
+                    ref={draggerOverlay}
                     className={cn('absolute top-0 left-0 w-full h-full', {
                         'bg-amber-100/25': draggingIntent,
                         'cursor-move': draggingIntent,

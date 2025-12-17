@@ -77,8 +77,6 @@ export function createSatellite() {
         console.log(`[Satellite] Draw: ${data.deviceId} (${data.keyIndex || data.controlId})`)
         // console.log('[Satellite] Draw data:', data)
 
-        const imageBase64 = data.image?.toString('base64') || undefined
-
         // save to global.keyStates
         if (!globalContext.keyStates.has(data.deviceId)) {
             globalContext.keyStates.set(data.deviceId, new Map())
@@ -88,7 +86,7 @@ export function createSatellite() {
         for (const [_hotkey, mapping] of globalContext.registeredHotkeys.entries()) {
             if (mapping.deviceId === data.deviceId && mapping.keyIndex === data.keyIndex) {
                 // Update the bitmap for this hotkey (optional redundancy)
-                mapping.imageBase64 = imageBase64 ?? ''
+                mapping.image = data.image || undefined
             }
         }
 
@@ -106,7 +104,7 @@ export function createSatellite() {
         const deviceKeyStates = globalContext.keyStates.get(data.deviceId)
         if (deviceKeyStates) {
             deviceKeyStates.set(data.keyIndex, {
-                imageBase64: imageBase64,
+                image: data.image,
                 color: data.color,
                 text: data.text,
             })
@@ -114,7 +112,6 @@ export function createSatellite() {
 
         const drawData = {
             ...data,
-            imageBase64,
         }
 
         // Send the draw event to the corresponding device window

@@ -94,40 +94,40 @@ export function initializeIpcHandlers() {
     })
 
     // TODO: IPC (electron-only)
-    ipcMain.handle('setHotkeyContext', (_event, { deviceId, keyIndex, imageBase64 }) => {
-        globalContext.hotkeyContext = { deviceId, keyIndex, imageBase64 }
+    ipcMain.handle('setHotkeyContext', (_event, { deviceId, keyIndex, image }) => {
+        globalContext.hotkeyContext = { deviceId, keyIndex, image }
     })
 
     // TODO: IPC (electron-only)
     ipcMain.handle('getHotkeyContext', (_event) => {
-        const context = globalContext.hotkeyContext // deviceId, keyIndex, imageBase64
+        const context = globalContext.hotkeyContext // deviceId, keyIndex, image
 
         if (!context) {
             return undefined
         }
 
-        const { deviceId, keyIndex, imageBase64 } = context
+        const { deviceId, keyIndex, image } = context
 
         // Get list of current hotkeys
         const hotkeys = [] as Array<{
             hotkey: string
             deviceId: string
             keyIndex: number
-            imageBase64: string | null
+            image?: Uint8Array | ArrayBuffer | null
         }>
         for (const [hotkey, mapping] of globalContext.registeredHotkeys.entries()) {
             hotkeys.push({
                 hotkey,
                 deviceId: mapping.deviceId,
                 keyIndex: mapping.keyIndex,
-                imageBase64: mapping.imageBase64,
+                image: mapping.image,
             })
         }
 
         return {
             deviceId,
             keyIndex,
-            imageBase64,
+            image,
             currentHotkeys: hotkeys,
         }
     })

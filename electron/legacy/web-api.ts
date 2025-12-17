@@ -229,7 +229,7 @@ export async function initializeWebApi() {
             })
 
             // HOTKEYS
-            handle('setHotkeyContext', (/*{ deviceId, keyIndex, imageBase64 }*/) => {
+            handle('setHotkeyContext', (/*{ deviceId, keyIndex, image }*/) => {
                 // TODO: implement if needed
             })
 

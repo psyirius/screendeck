@@ -10,21 +10,22 @@ export const globalContext = {
         Map<
             number,
             {
-                imageBase64?: string
+                image?: Uint8Array | ArrayBuffer
                 color?: string
                 text?: string
             }
         >
     >(),
     hotkeyPromptWindow: null as Electron.BrowserWindow | null,
-    hotkeyContext: null as
-        | {
-            deviceId: string
-            keyIndex: number
-            imageBase64: string
-        }
-        | null,
-    registeredHotkeys: new Map<string, { deviceId: string; keyIndex: number; imageBase64: string }>(),
+    hotkeyContext: null as {
+        deviceId: string
+        keyIndex: number
+        image?: Uint8Array | ArrayBuffer
+    } | null,
+    registeredHotkeys: new Map<
+        string,
+        { deviceId: string; keyIndex: number; image?: Uint8Array | ArrayBuffer }
+    >(),
     trayParentWindow: null as unknown as Electron.BrowserWindow,
     settingsWindow: null as Electron.BrowserWindow | null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

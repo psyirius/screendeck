@@ -112,10 +112,10 @@ export class ElectronMainAdapter {
     }
 
     async getHotkeyContext(_event: any): Promise<HotkeyContext | undefined> {
-        throw new Error("Not implemented");
+        throw new Error('Not implemented')
     }
 
-    async setHotkeyContext(_event: any, _args: { deviceId: string; keyIndex: number; imageBase64?: string | null }): Promise<void> {
+    async setHotkeyContext(_event: any, _args: { deviceId: string; keyIndex: number; image?: Uint8Array | ArrayBuffer | null }): Promise<void> {
         throw new Error("Not implemented");
     }
 

@@ -98,7 +98,7 @@ export class ElectronAPIAdapter implements SharedAPI {
     setHotkeyContext(args: {
         deviceId: string
         keyIndex: number
-        imageBase64?: string | null
+        image?: Uint8Array | ArrayBuffer | null
     }): Promise<void> {
         return this.invoke('setHotkeyContext', args)
     }
@@ -265,7 +265,7 @@ export class SocketIOAPIAdapter implements SharedAPI {
     setHotkeyContext(args: {
         deviceId: string
         keyIndex: number
-        imageBase64?: string | null
+        image?: Uint8Array | ArrayBuffer | null
     }): Promise<void> {
         return this.request('setHotkeyContext', args)
     }

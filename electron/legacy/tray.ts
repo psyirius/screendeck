@@ -1,4 +1,4 @@
-import { Tray, Menu, nativeImage, app } from 'electron'
+import { Tray, Menu, nativeImage, app, clipboard } from 'electron'
 import Store from 'electron-store'
 import createSettingsWindow from './settings'
 import {
@@ -111,7 +111,7 @@ function updateTrayMenu() {
                             win.webContents.send('identify')
                             updateTrayMenu()
                         }
-                        webDeviceActions.identify(deviceId);
+                        webDeviceActions.identify(deviceId)
                     },
                 },
                 {
@@ -132,9 +132,7 @@ function updateTrayMenu() {
                     },
                 },
                 {
-                    label: isDisabled
-                        ? 'Enable Button Presses'
-                        : 'Disable Button Presses',
+                    label: isDisabled ? 'Enable Button Presses' : 'Disable Button Presses',
                     type: 'normal',
                     click: () => {
                         const newState = !isDisabled
@@ -145,9 +143,22 @@ function updateTrayMenu() {
                             // TODO: IPC
                             win.webContents.send('disablePress', newState)
                         }
-                        webDeviceActions.setDisablePress(deviceId, newState);
+                        webDeviceActions.setDisablePress(deviceId, newState)
 
                         updateTrayMenu()
+                    },
+                },
+                {
+                    type: 'separator',
+                },
+                // Url for web surface
+                {
+                    label: 'Copy Web URL',
+                    type: 'normal',
+                    click: () => {
+                        const url = new URL('http://localhost:3001/')
+                        url.searchParams.append('deviceId', deviceId)
+                        clipboard.writeText(url.href, 'clipboard')
                     },
                 },
             ],

@@ -30,27 +30,29 @@ export function registerHotkey(
                 throw new Error(`Control not found for device ${deviceId} at (${x}, ${y})`)
             }
             globalContext.satelliteClient?.keyDown(deviceId, controlId, control);
+
+            // FIXME: Temporary workaround
             setTimeout(
                 () => globalContext.satelliteClient?.keyUp(deviceId, controlId, control),
                 100
             )
         })
 
-        // let imageBase64 = ''
+        // let image = ''
         // const deviceMap = globalState.keyStates.get(deviceId)
         //
         // if (deviceMap) {
         //     const keyState = deviceMap.get(keyIndex)
         //
         //     if (keyState) {
-        //         imageBase64 = keyState.imageBase64 || ''
+        //         image = keyState.image || undefined
         //     }
         // }
 
         globalContext.registeredHotkeys.set(hotkey, {
             deviceId,
             keyIndex,
-            imageBase64: '',
+            /* image */
         })
         console.log(
             `Registered hotkey: ${hotkey} for ${deviceId} key ${keyIndex}`

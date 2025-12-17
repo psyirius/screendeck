@@ -56,8 +56,13 @@ export interface ClearHotkeyArgs {
 }
 
 export interface HotkeyContext {
-    deviceId: string;
-    keyIndex: number;
-    imageBase64?: string | null;
-    currentHotkeys?: Array<{ hotkey: string; deviceId: string; keyIndex: number; imageBase64: string | null }>;
+    deviceId: string
+    keyIndex: number
+    image?: Uint8Array | ArrayBuffer | null
+    currentHotkeys?: Array<{
+        hotkey: string
+        deviceId: string
+        keyIndex: number
+        image?: Uint8Array | ArrayBuffer | null
+    }>
 }
