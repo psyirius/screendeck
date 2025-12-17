@@ -477,6 +477,93 @@ const styles = `
             transition: none;
         }
     }
+
+    /* Floating Action Button for mobile */
+    .fab {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease, opacity 0.3s ease, box-shadow 0.2s ease;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .fab:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .fab:active {
+        transform: scale(0.95);
+    }
+
+    .fab.hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.5);
+    }
+
+    /* FAB Menu */
+    .fab-menu {
+        position: fixed;
+        bottom: 90px;
+        right: 20px;
+        background: rgba(30, 30, 30, 0.95);
+        border-radius: 12px;
+        padding: 8px 0;
+        min-width: 180px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        z-index: 999;
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .fab-menu.visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+
+    .fab-menu-item {
+        padding: 12px 16px;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background 0.15s ease;
+    }
+
+    .fab-menu-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .fab-menu-item:active {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .fab,
+        .fab-menu {
+            transition: none !important;
+        }
+    }
 `
 
 const InjectStyles = () => (
@@ -705,6 +792,310 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     let expectedKeyCount = 0
     let initialDrawsReceived = new Set<number>()
     let initialAnimationTriggered = false
+
+    // --- Mobile UX Features ---
+
+    // Screen Wake Lock - keeps screen on while keypad is active
+    let wakeLock: WakeLockSentinel | null = null
+
+    async function requestWakeLock() {
+        if (!('wakeLock' in navigator)) {
+            console.log('Wake Lock API not supported')
+            return
+        }
+
+        try {
+            wakeLock = await navigator.wakeLock.request('screen')
+            console.log('Wake Lock acquired')
+
+            wakeLock.addEventListener('release', () => {
+                console.log('Wake Lock released')
+            })
+        } catch (err) {
+            console.warn('Failed to acquire Wake Lock:', err)
+        }
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock) {
+            wakeLock.release()
+            wakeLock = null
+        }
+    }
+
+    // Re-acquire wake lock when page becomes visible again
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && !wakeLock) {
+            requestWakeLock()
+        }
+    })
+
+    // Fullscreen Mode toggle
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.warn('Failed to enter fullscreen:', err)
+            })
+        } else {
+            document.exitFullscreen()
+        }
+    }
+
+    // Orientation Lock - lock to current or specific orientation
+    async function lockOrientation(orientation: 'landscape' | 'portrait' | 'any' = 'landscape') {
+        const screenOrientation = screen.orientation as any
+        if (!screenOrientation?.lock) {
+            console.log('Screen Orientation Lock not supported')
+            return false
+        }
+
+        try {
+            await screenOrientation.lock(orientation)
+            console.log(`Orientation locked to ${orientation}`)
+            return true
+        } catch (err) {
+            console.warn('Failed to lock orientation:', err)
+            return false
+        }
+    }
+
+    function unlockOrientation() {
+        const screenOrientation = screen.orientation as any
+        if (screenOrientation?.unlock) {
+            screenOrientation.unlock()
+            console.log('Orientation unlocked')
+        }
+    }
+
+    // Expose controls globally for UI buttons to use (or could be via context menu)
+    ; (window as any).__keypadControls = {
+        toggleFullscreen,
+        lockOrientation,
+        unlockOrientation,
+        requestWakeLock,
+        releaseWakeLock
+    }
+
+    // Auto-acquire wake lock on init (for web/mobile only)
+    if (!api.is('electron')) {
+        requestWakeLock()
+
+        // --- FAB (Floating Action Button) for mobile menu ---
+        let fabVisible = true
+        let fabMenuOpen = false
+        let fabLongPressTimer: ReturnType<typeof setTimeout> | null = null
+
+        // Create FAB element
+        const fab = document.createElement('button')
+        fab.className = 'fab'
+        fab.innerHTML = '⚙️'
+        fab.setAttribute('aria-label', 'Settings menu')
+        document.body.appendChild(fab)
+
+        // Create FAB menu
+        const fabMenu = document.createElement('div')
+        fabMenu.className = 'fab-menu'
+        fabMenu.innerHTML = `
+            <div class="fab-menu-item" data-action="fullscreen">⛶ ${document.fullscreenElement ? 'Exit' : 'Enter'} Fullscreen</div>
+            <div class="fab-menu-item" data-action="lock-landscape">🔒 Lock Landscape</div>
+            <div class="fab-menu-item" data-action="lock-portrait">🔒 Lock Portrait</div>
+            <div class="fab-menu-item" data-action="unlock-orientation">🔓 Unlock Orientation</div>
+        `
+        document.body.appendChild(fabMenu)
+
+        // Toggle FAB menu on tap (only if not dragged)
+        let fabWasDragged = false
+        fab.addEventListener('click', () => {
+            if (fabWasDragged) {
+                fabWasDragged = false
+                return // Ignore click after drag
+            }
+            fabMenuOpen = !fabMenuOpen
+            fabMenu.classList.toggle('visible', fabMenuOpen)
+            fab.innerHTML = fabMenuOpen ? '✕' : '⚙️'
+            updateFabMenuPosition()
+        })
+
+        // Update FAB menu position based on FAB position
+        function updateFabMenuPosition() {
+            const fabRect = fab.getBoundingClientRect()
+            const menuRect = fabMenu.getBoundingClientRect()
+
+            // Position menu above or below FAB depending on space
+            if (fabRect.top > menuRect.height + 20) {
+                fabMenu.style.bottom = 'auto'
+                fabMenu.style.top = `${fabRect.top - menuRect.height - 10}px`
+            } else {
+                fabMenu.style.top = 'auto'
+                fabMenu.style.bottom = `${window.innerHeight - fabRect.bottom - menuRect.height - 10}px`
+            }
+
+            // Position menu left or right of FAB depending on space
+            if (fabRect.right > menuRect.width + 20) {
+                fabMenu.style.right = `${window.innerWidth - fabRect.right}px`
+                fabMenu.style.left = 'auto'
+            } else {
+                fabMenu.style.left = `${fabRect.left}px`
+                fabMenu.style.right = 'auto'
+            }
+        }
+
+        // Restore FAB position from localStorage
+        const savedFabPos = localStorage.getItem('fabPosition')
+        if (savedFabPos) {
+            try {
+                const { right, bottom } = JSON.parse(savedFabPos)
+                fab.style.right = `${right}px`
+                fab.style.bottom = `${bottom}px`
+            } catch { /* ignore */ }
+        }
+
+        // FAB drag handling (combined with long-press detection)
+        let fabDragStartX = 0
+        let fabDragStartY = 0
+        let fabStartRight = 0
+        let fabStartBottom = 0
+        let fabIsDragging = false
+
+        fab.addEventListener('touchstart', (e: TouchEvent) => {
+            const touch = e.touches[0]
+            fabDragStartX = touch.clientX
+            fabDragStartY = touch.clientY
+            fabIsDragging = false
+            fabWasDragged = false
+
+            // Get current position
+            const rect = fab.getBoundingClientRect()
+            fabStartRight = window.innerWidth - rect.right
+            fabStartBottom = window.innerHeight - rect.bottom
+
+            // Start long-press timer
+            fabLongPressTimer = setTimeout(() => {
+                if (!fabIsDragging) {
+                    fabVisible = false
+                    fab.classList.add('hidden')
+                    fabMenu.classList.remove('visible')
+                    fabMenuOpen = false
+                    triggerHapticFeedback(50)
+                }
+            }, 800)
+        }, { passive: true })
+
+        fab.addEventListener('touchmove', (e: TouchEvent) => {
+            const touch = e.touches[0]
+            const deltaX = touch.clientX - fabDragStartX
+            const deltaY = touch.clientY - fabDragStartY
+
+            // Start drag if moved more than 10px
+            if (!fabIsDragging && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+                fabIsDragging = true
+                fabWasDragged = true
+
+                // Cancel long-press
+                if (fabLongPressTimer) {
+                    clearTimeout(fabLongPressTimer)
+                    fabLongPressTimer = null
+                }
+
+                // Close menu while dragging
+                fabMenu.classList.remove('visible')
+                fabMenuOpen = false
+                fab.innerHTML = '⚙️'
+            }
+
+            if (fabIsDragging) {
+                // Calculate new position (using right/bottom for edge anchoring)
+                let newRight = fabStartRight - deltaX
+                let newBottom = fabStartBottom - deltaY
+
+                // Clamp to screen bounds
+                const padding = 10
+                newRight = Math.max(padding, Math.min(window.innerWidth - 56 - padding, newRight))
+                newBottom = Math.max(padding, Math.min(window.innerHeight - 56 - padding, newBottom))
+
+                fab.style.right = `${newRight}px`
+                fab.style.bottom = `${newBottom}px`
+            }
+        }, { passive: true })
+
+        fab.addEventListener('touchend', () => {
+            if (fabLongPressTimer) {
+                clearTimeout(fabLongPressTimer)
+                fabLongPressTimer = null
+            }
+
+            if (fabIsDragging) {
+                // Save position to localStorage
+                const rect = fab.getBoundingClientRect()
+                localStorage.setItem('fabPosition', JSON.stringify({
+                    right: window.innerWidth - rect.right,
+                    bottom: window.innerHeight - rect.bottom
+                }))
+            }
+
+            fabIsDragging = false
+        })
+
+        fab.addEventListener('touchcancel', () => {
+            if (fabLongPressTimer) {
+                clearTimeout(fabLongPressTimer)
+                fabLongPressTimer = null
+            }
+            fabIsDragging = false
+        })
+
+        // FAB menu item actions
+        fabMenu.querySelectorAll('.fab-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const action = (e.target as HTMLElement).getAttribute('data-action')
+
+                if (action === 'fullscreen') {
+                    toggleFullscreen()
+                } else if (action === 'lock-landscape') {
+                    lockOrientation('landscape')
+                } else if (action === 'lock-portrait') {
+                    lockOrientation('portrait')
+                } else if (action === 'unlock-orientation') {
+                    unlockOrientation()
+                }
+
+                // Close menu after action
+                fabMenuOpen = false
+                fabMenu.classList.remove('visible')
+                fab.innerHTML = '⚙️'
+            })
+        })
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (fabMenuOpen && !fab.contains(e.target as Node) && !fabMenu.contains(e.target as Node)) {
+                fabMenuOpen = false
+                fabMenu.classList.remove('visible')
+                fab.innerHTML = '⚙️'
+            }
+        })
+
+        // Two-finger tap to toggle FAB visibility
+        let lastTwoFingerTapTime = 0
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                const now = Date.now()
+                // Debounce to prevent rapid toggles
+                if (now - lastTwoFingerTapTime > 500) {
+                    lastTwoFingerTapTime = now
+                    fabVisible = !fabVisible
+                    fab.classList.toggle('hidden', !fabVisible)
+
+                    if (!fabVisible) {
+                        fabMenuOpen = false
+                        fabMenu.classList.remove('visible')
+                    }
+
+                    triggerHapticFeedback(20)
+                }
+            }
+        }, { passive: true })
+    }
 
     // Request config from main process
     // using deviceInit instead of getDeviceConfig to trigger re-add the device to satellite
@@ -1012,10 +1403,21 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         const menu = document.createElement('div')
         menu.classList.add('context-menu')
         menu.style.position = 'fixed'
+
+        // Build menu items - add mobile UX options only for web
+        const isWeb = !api.is('electron')
+        const mobileUxItems = isWeb ? `
+        <div class="menu-item" data-action="fullscreen">${document.fullscreenElement ? '⛶ Exit Fullscreen' : '⛶ Enter Fullscreen'}</div>
+        <div class="menu-item" data-action="lock-landscape">🔒 Lock Landscape</div>
+        <div class="menu-item" data-action="lock-portrait">🔒 Lock Portrait</div>
+        <div class="menu-item" data-action="unlock-orientation">🔓 Unlock Orientation</div>
+        ` : ''
+
         menu.innerHTML = `
         <div class="menu-item" data-action="encoder">Set to Encoder Mode</div>
         <div class="menu-item" data-action="button">Set to Button Mode</div>
         <div class="menu-item" data-action="hotkey">Assign Hotkey...</div>
+        ${mobileUxItems}
         `
 
         document.body.appendChild(menu)
@@ -1071,6 +1473,14 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     image: keyConfig?.image || null,
                 })
                 api.openHotkeyPrompt()
+            } else if (action === 'fullscreen') {
+                toggleFullscreen()
+            } else if (action === 'lock-landscape') {
+                lockOrientation('landscape')
+            } else if (action === 'lock-portrait') {
+                lockOrientation('portrait')
+            } else if (action === 'unlock-orientation') {
+                unlockOrientation()
             }
 
             closeContextMenu()
