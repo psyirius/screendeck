@@ -23,33 +23,40 @@ import {
 
 const webDevices = new Map<string, any>();
 
-function getDeviceSocket(deviceId: string) {
-    for (const [_, device] of webDevices.entries()) {
-        if (device.deviceId === deviceId) {
-            return device.socket;
-        }
-    }
-    return null;
+function getDevices(deviceId: string) {
+    return webDevices.values().filter((device: any) => device.deviceId === deviceId);
 }
 
 export const webDeviceActions = {
     setDisablePress(deviceId: string, newState: boolean) {
-        getDeviceSocket(deviceId)?.emit('disablePress', newState)
+        getDevices(deviceId).forEach((device: any) => {
+            device.socket.emit('disablePress', newState)
+        })
     },
     clearDeck(deviceId: string) {
-        getDeviceSocket(deviceId)?.emit('clearDeck')
+        getDevices(deviceId).forEach((device: any) => {
+            device.socket.emit('clearDeck')
+        })
     },
     setBrightness(deviceId: string, percentage: number) {
-        getDeviceSocket(deviceId)?.emit('brightness', percentage)
+        getDevices(deviceId).forEach((device: any) => {
+            device.socket.emit('brightness', percentage)
+        })
     },
     setLockedState(deviceId: string, data: any) {
-        getDeviceSocket(deviceId)?.emit('lockedState', data)
+        getDevices(deviceId).forEach((device: any) => {
+            device.socket.emit('lockedState', data)
+        })
     },
     identify(deviceId: string) {
-        getDeviceSocket(deviceId)?.emit('identify')
+        getDevices(deviceId).forEach((device: any) => {
+            device.socket.emit('identify')
+        })
     },
     draw(deviceId: string, data: any) {
-        getDeviceSocket(deviceId)?.emit('draw', data)
+        getDevices(deviceId).forEach((device: any) => {
+            device.socket.emit('draw', data)
+        })
     },
 }
 
