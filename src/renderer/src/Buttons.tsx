@@ -389,6 +389,24 @@ const InjectStyles = () => (
     <style>{styles}</style>
 )
 
+// Calculate the window size based on the number of columns, rows, and bitmap size
+export function calculateViewPortSize(
+    columnCount: number,
+    rowCount: number,
+    bitmapSize: number,
+    padding: number = 20,
+    gap: number = 10
+) {
+    const KEY_WIDTH = bitmapSize
+    const KEY_HEIGHT = bitmapSize
+    const PADDING = padding
+    const GAP = gap
+    const rows = rowCount
+    const width = columnCount * KEY_WIDTH + (columnCount - 1) * GAP + PADDING * 2
+    const height = rows * KEY_HEIGHT + (rows - 1) * GAP + PADDING * 2
+    return { width, height }
+}
+
 // interface KeyData {
 //     text?: string
 //     textColor?: string
@@ -1306,6 +1324,9 @@ function LegacyButtons() {
     const deviceLabelRef = React.useRef<HTMLDivElement>(null);
     const loadingMessageRef = React.useRef<HTMLDivElement>(null)
 
+    // Viewport size for web mode
+    const [viewportSize, setViewportSize] = React.useState<{ width: number; height: number } | null>(null);
+
     // initialization effect
     // TODO: stagger animation on init keys
     useEffect(() => {
@@ -1337,7 +1358,21 @@ function LegacyButtons() {
             },
             $callbacks: {
                 onDeviceConfigReceived: (config: any) => {
-                    console.log('Device config received:', config)
+                    console.log('Device config received:', config);
+
+                    const vpSize = calculateViewPortSize(
+                        config.columnCount || 0,
+                        config.rowCount || 0,
+                        config.bitmapSize || 72,
+                        20,
+                        10,
+                    )
+                    console.log('Calculated viewport size:', vpSize);
+
+                    // Set viewport size for web mode
+                    if (!api.is('electron')) {
+                        setViewportSize(vpSize);
+                    }
 
                     const columns = config.columnCount || 0
                     const rows = config.rowCount || 0
@@ -1416,6 +1451,15 @@ function LegacyButtons() {
             className="window-container"
             style={{
                 backgroundColor: api.is('electron') ? 'transparent' : 'gray',
+                // Web mode: use calculated viewport size and make scrollable
+                ...(!api.is('electron') && viewportSize ? {
+                    width: viewportSize.width,
+                    height: viewportSize.height,
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    overflow: 'auto',
+                } : {}),
             }}
         >
             {/* Close and labels */}

@@ -10,6 +10,7 @@
 - [ ] Satellite Style Connecting Graphics on Keys.
 - [ ] Orientation change handling.
 - [ ] Cached button re-drawing to minimize duplicate rendering.
+- [ ] Add Scaling options for different screen sizes.
 
 ## GitHub issues
 - [ ] Show ScreenDeck on startup
