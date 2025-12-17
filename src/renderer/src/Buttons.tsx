@@ -483,79 +483,102 @@ const styles = `
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        color: white;
-        font-size: 24px;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: rgba(24, 24, 27, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 20px;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         z-index: 1000;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.2s ease, opacity 0.3s ease, box-shadow 0.2s ease;
+        transition: transform 0.15s ease, opacity 0.2s ease, background 0.15s ease;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }
 
+    .fab svg {
+        width: 22px;
+        height: 22px;
+        stroke-width: 2;
+        pointer-events: none; /* Allow clicks to pass through to button */
+    }
+    
+    .fab svg * {
+        pointer-events: none;
+    }
+
     .fab:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        background: rgba(39, 39, 42, 0.95);
+        transform: scale(1.05);
     }
 
     .fab:active {
         transform: scale(0.95);
+        background: rgba(50, 50, 55, 0.95);
     }
 
     .fab.hidden {
         opacity: 0;
         pointer-events: none;
-        transform: scale(0.5);
+        transform: scale(0.8);
     }
 
     /* FAB Menu */
     .fab-menu {
         position: fixed;
-        bottom: 90px;
+        bottom: 80px;
         right: 20px;
-        background: rgba(30, 30, 30, 0.95);
+        background: rgba(24, 24, 27, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 12px;
-        padding: 8px 0;
-        min-width: 180px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        padding: 6px;
+        min-width: 200px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
         z-index: 999;
         opacity: 0;
-        transform: translateY(10px) scale(0.95);
+        transform: translateY(8px);
         pointer-events: none;
-        transition: opacity 0.2s ease, transform 0.2s ease;
+        transition: opacity 0.15s ease, transform 0.15s ease;
     }
 
     .fab-menu.visible {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
         pointer-events: auto;
     }
 
     .fab-menu-item {
-        padding: 12px 16px;
-        color: white;
+        padding: 10px 12px;
+        color: rgba(255, 255, 255, 0.9);
         font-size: 14px;
+        font-family: system-ui, -apple-system, sans-serif;
         cursor: pointer;
         display: flex;
         align-items: center;
         gap: 10px;
-        transition: background 0.15s ease;
+        border-radius: 8px;
+        transition: background 0.1s ease;
     }
 
     .fab-menu-item:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
     }
 
     .fab-menu-item:active {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .fab-menu-item svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2;
+        flex-shrink: 0;
+        opacity: 0.8;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -567,22 +590,22 @@ const styles = `
 
     /* Config mode styles */
     .fab.config-mode {
-        background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
-        animation: config-pulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes config-pulse {
-        0%, 100% { box-shadow: 0 4px 12px rgba(241, 39, 17, 0.4); }
-        50% { box-shadow: 0 4px 20px rgba(241, 39, 17, 0.8); }
+        background: rgba(245, 158, 11, 0.9);
+        border-color: rgba(251, 191, 36, 0.5);
     }
 
     .fab-menu-item.active {
-        background: rgba(102, 126, 234, 0.3);
-        font-weight: bold;
+        background: rgba(245, 158, 11, 0.2);
+        color: rgb(251, 191, 36);
+    }
+
+    .fab-menu-item.active svg {
+        opacity: 1;
+        color: rgb(251, 191, 36);
     }
 
     .key.config-highlight {
-        outline: 3px dashed rgba(245, 175, 25, 0.8) !important;
+        outline: 2px dashed rgba(251, 191, 36, 0.7) !important;
     }
 
     /* Config mode banner */
@@ -885,6 +908,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     }
 
     // Orientation Lock - lock to current or specific orientation
+    // NOTE: Orientation lock requires fullscreen mode on most browsers
     async function lockOrientation(orientation: 'landscape' | 'portrait' | 'any' = 'landscape') {
         const screenOrientation = screen.orientation as any
         if (!screenOrientation?.lock) {
@@ -893,6 +917,11 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         }
 
         try {
+            // Request fullscreen first if not already (required for orientation lock)
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen()
+            }
+
             await screenOrientation.lock(orientation)
             console.log(`Orientation locked to ${orientation}`)
             return true
@@ -929,42 +958,63 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         let fabLongPressTimer: ReturnType<typeof setTimeout> | null = null
         let configModeEnabled = false
 
-        // Create FAB element
+        // Create FAB element with Lucide Settings icon
         const fab = document.createElement('button')
         fab.className = 'fab'
-        fab.innerHTML = '⚙️'
+        fab.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`
         fab.setAttribute('aria-label', 'Settings menu')
         document.body.appendChild(fab)
 
-        // Create config mode banner
-        const configBanner = document.createElement('div')
-        configBanner.className = 'config-mode-banner'
-        configBanner.textContent = '⚙️ CONFIG MODE - Tap keys to toggle encoder/button'
-        document.body.appendChild(configBanner)
+        // Lucide icon SVGs (inline for DOM usage)
+        const icons = {
+            wrench: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+            maximize: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+            smartphone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>',
+            rotateCcw: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
+            unlock: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+            x: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+            check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+        }
+
+        // Orientation state tracking
+        let currentOrientation: 'landscape' | 'portrait' | 'unlocked' = 'unlocked'
+
+        // Check if orientation lock is supported
+        const orientationSupported = 'orientation' in screen && 'lock' in (screen.orientation || {})
 
         // Create FAB menu
         const fabMenu = document.createElement('div')
         fabMenu.className = 'fab-menu'
         fabMenu.innerHTML = `
-            <div class="fab-menu-item" data-action="config-mode">🔧 Toggle Config Mode</div>
-            <div class="fab-menu-item" data-action="fullscreen">⛶ ${document.fullscreenElement ? 'Exit' : 'Enter'} Fullscreen</div>
-            <div class="fab-menu-item" data-action="lock-landscape">🔒 Lock Landscape</div>
-            <div class="fab-menu-item" data-action="lock-portrait">🔒 Lock Portrait</div>
-            <div class="fab-menu-item" data-action="unlock-orientation">🔓 Unlock Orientation</div>
+            <div class="fab-menu-item" data-action="config-mode">${icons.wrench} Config Mode</div>
+            <div class="fab-menu-item" data-action="fullscreen">${icons.maximize} ${document.fullscreenElement ? 'Exit' : 'Enter'} Fullscreen</div>
+            ${orientationSupported ? `<div class="fab-menu-item" data-action="orientation">${icons.smartphone} Orientation: Auto</div>` : ''}
         `
         document.body.appendChild(fabMenu)
+
+        // Update orientation menu item text
+        function updateOrientationMenuItem() {
+            const orientationItem = fabMenu.querySelector('[data-action="orientation"]')
+            if (orientationItem) {
+                const labels = {
+                    'unlocked': 'Auto',
+                    'landscape': 'Landscape 🔒',
+                    'portrait': 'Portrait 🔒'
+                }
+                orientationItem.innerHTML = `${icons.smartphone} Orientation: ${labels[currentOrientation]}`
+            }
+        }
 
         // Toggle config mode function
         function toggleConfigMode() {
             configModeEnabled = !configModeEnabled
             fab.classList.toggle('config-mode', configModeEnabled)
-            configBanner.classList.toggle('visible', configModeEnabled)
 
             // Update menu item to show active state
             const configMenuItem = fabMenu.querySelector('[data-action="config-mode"]')
             if (configMenuItem) {
                 configMenuItem.classList.toggle('active', configModeEnabled)
-                configMenuItem.textContent = configModeEnabled ? '✓ Config Mode ON' : '🔧 Toggle Config Mode'
+                configMenuItem.innerHTML = configModeEnabled ? `${icons.check} Config Mode ON` : `${icons.wrench} Config Mode`
             }
 
             // Add visual indicator to keys
@@ -990,7 +1040,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             }
             fabMenuOpen = !fabMenuOpen
             fabMenu.classList.toggle('visible', fabMenuOpen)
-            fab.innerHTML = fabMenuOpen ? '✕' : '⚙️'
+            fab.innerHTML = fabMenuOpen ? icons.x : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`
             updateFabMenuPosition()
         })
 
@@ -1054,6 +1104,19 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     fab.classList.add('hidden')
                     fabMenu.classList.remove('visible')
                     fabMenuOpen = false
+
+                    // Disable config mode when FAB is hidden
+                    if (configModeEnabled) {
+                        configModeEnabled = false
+                        fab.classList.remove('config-mode')
+                        keyElements.forEach(key => key.classList.remove('config-highlight'))
+                        const configMenuItem = fabMenu.querySelector('[data-action="config-mode"]')
+                        if (configMenuItem) {
+                            configMenuItem.classList.remove('active')
+                            configMenuItem.innerHTML = `${icons.wrench} Config Mode`
+                        }
+                    }
+
                     triggerHapticFeedback(50)
                 }
             }, 800)
@@ -1078,10 +1141,13 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 // Close menu while dragging
                 fabMenu.classList.remove('visible')
                 fabMenuOpen = false
-                fab.innerHTML = '⚙️'
+                fab.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`
             }
 
             if (fabIsDragging) {
+                // Prevent scroll while dragging FAB
+                e.preventDefault()
+
                 // Calculate new position (using right/bottom for edge anchoring)
                 let newRight = fabStartRight - deltaX
                 let newBottom = fabStartBottom - deltaY
@@ -1094,7 +1160,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 fab.style.right = `${newRight}px`
                 fab.style.bottom = `${newBottom}px`
             }
-        }, { passive: true })
+        }, { passive: false }) // passive: false to allow preventDefault
 
         fab.addEventListener('touchend', () => {
             if (fabLongPressTimer) {
@@ -1125,7 +1191,10 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         // FAB menu item actions
         fabMenu.querySelectorAll('.fab-menu-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                const action = (e.target as HTMLElement).getAttribute('data-action')
+                // Use closest() to handle clicks on SVG icons inside menu items
+                const menuItem = (e.target as HTMLElement).closest('.fab-menu-item')
+                const action = menuItem?.getAttribute('data-action')
+                if (!action) return
 
                 if (action === 'config-mode') {
                     toggleConfigMode()
@@ -1133,18 +1202,34 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     return
                 } else if (action === 'fullscreen') {
                     toggleFullscreen()
-                } else if (action === 'lock-landscape') {
-                    lockOrientation('landscape')
-                } else if (action === 'lock-portrait') {
-                    lockOrientation('portrait')
-                } else if (action === 'unlock-orientation') {
-                    unlockOrientation()
+                    // Update fullscreen menu item text after toggle
+                    setTimeout(() => {
+                        const fsItem = fabMenu.querySelector('[data-action="fullscreen"]')
+                        if (fsItem) {
+                            fsItem.innerHTML = `${icons.maximize} ${document.fullscreenElement ? 'Exit' : 'Enter'} Fullscreen`
+                        }
+                    }, 100)
+                } else if (action === 'orientation') {
+                    // Cycle through: unlocked → landscape → portrait → unlocked
+                    if (currentOrientation === 'unlocked') {
+                        lockOrientation('landscape')
+                        currentOrientation = 'landscape'
+                    } else if (currentOrientation === 'landscape') {
+                        lockOrientation('portrait')
+                        currentOrientation = 'portrait'
+                    } else {
+                        unlockOrientation()
+                        currentOrientation = 'unlocked'
+                    }
+                    updateOrientationMenuItem()
+                    // Don't close menu for orientation toggle
+                    return
                 }
 
                 // Close menu after action
                 fabMenuOpen = false
                 fabMenu.classList.remove('visible')
-                fab.innerHTML = configModeEnabled ? '🔧' : '⚙️'
+                fab.innerHTML = configModeEnabled ? icons.wrench : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`
             })
         })
 
@@ -1153,7 +1238,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             if (fabMenuOpen && !fab.contains(e.target as Node) && !fabMenu.contains(e.target as Node)) {
                 fabMenuOpen = false
                 fabMenu.classList.remove('visible')
-                fab.innerHTML = '⚙️'
+                fab.innerHTML = configModeEnabled ? icons.wrench : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`
             }
         })
 
@@ -1171,6 +1256,18 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     if (!fabVisible) {
                         fabMenuOpen = false
                         fabMenu.classList.remove('visible')
+
+                        // Disable config mode when FAB is hidden
+                        if (configModeEnabled) {
+                            configModeEnabled = false
+                            fab.classList.remove('config-mode')
+                            keyElements.forEach(key => key.classList.remove('config-highlight'))
+                            const configMenuItem = fabMenu.querySelector('[data-action="config-mode"]')
+                            if (configMenuItem) {
+                                configMenuItem.classList.remove('active')
+                                configMenuItem.innerHTML = `${icons.wrench} Config Mode`
+                            }
+                        }
                     }
 
                     triggerHapticFeedback(20)
