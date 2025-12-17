@@ -20,7 +20,7 @@
 - [ ] Add Scaling options for different screen sizes.
 - [ ] Full Surface/Device Customization.
 - [ ] Bitfocus Buttons web-ui like look.
-- [ ] Tactile feedback support for Touch Screens.
+- [ ] Physical StreamDeck like Look.
 
 ## GitHub issues
 - [ ] Show ScreenDeck on startup

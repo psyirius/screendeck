@@ -99,6 +99,31 @@ const styles = `
         border-radius: inherit;
     }
 
+    /* Key entrance animation */
+    @keyframes keyPopIn {
+        0% {
+            opacity: 0;
+            transform: scale(0.3);
+        }
+        70% {
+            transform: scale(1.05);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .key.animate-in {
+        animation: keyPopIn 0.3s ease-out forwards;
+    }
+
+    .key.hidden-init {
+        opacity: 0;
+        transform: scale(0.3);
+        display: flex !important; /* Ensure keys take up space even when hidden */
+    }
+
     .key:hover {
         background-color: #555;
     }
@@ -641,6 +666,11 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     }
     const keyRenderCache = new Map<number, KeyRenderCache>()
 
+    // Track initial draw events for staggered animation
+    let expectedKeyCount = 0
+    let initialDrawsReceived = new Set<number>()
+    let initialAnimationTriggered = false
+
     // Request config from main process
     // using deviceInit instead of getDeviceConfig to trigger re-add the device to satellite
     api.deviceInit(DEVICE_ID).then((config) => {
@@ -786,23 +816,52 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         // Remove existing keys
         keypad.querySelectorAll('.key').forEach((key) => key.remove())
         keyElements.length = 0
+        keyRenderCache.clear()
 
         const keysTotal = columnCount * rowCount
 
+        // Reset animation tracking for initial draws
+        expectedKeyCount = keysTotal
+        initialDrawsReceived.clear()
+        initialAnimationTriggered = false
+
         for (let i = 0; i < keysTotal; i++) {
             const keyElement = document.createElement('div')!
-            keyElement.className = 'key'
+            keyElement.className = 'key hidden-init' // Start hidden, animate after all draws
             keyElement.dataset.index = String(i)
-            //keyElement.style.display = 'flex'
             keypad.appendChild(keyElement)
             keyElements.push(keyElement)
 
             refreshKey(DEVICE_ID, i)
         }
+    }
 
-        //checkKeyStates()
+    /**
+     * Triggers staggered pop-in animation for all keys.
+     */
+    function triggerKeyAnimation() {
+        if (initialAnimationTriggered) return
+        initialAnimationTriggered = true
 
-        //updateGridLayout() // Initial layout calc after grid build
+        const staggerDelay = 30 // ms between each key animation
+        const columnCount = $state.Columns
+
+        keyElements.forEach((keyElement, i) => {
+            // Calculate diagonal wave delay
+            const row = Math.floor(i / columnCount)
+            const col = i % columnCount
+            const delay = (row + col) * staggerDelay
+
+            setTimeout(() => {
+                keyElement.classList.remove('hidden-init')
+                keyElement.classList.add('animate-in')
+
+                // Clean up animation class after it completes
+                keyElement.addEventListener('animationend', () => {
+                    keyElement.classList.remove('animate-in')
+                }, { once: true })
+            }, delay)
+        })
     }
 
     // function checkKeyStates() {
@@ -1272,6 +1331,16 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
 
         keyStates.get(keyObj.deviceId)!.set(keyObj.keyIndex, keyObj)
         processKey(keyObj)
+
+        // Track initial draws for animation trigger
+        if (!initialAnimationTriggered && expectedKeyCount > 0) {
+            initialDrawsReceived.add(keyObj.keyIndex)
+
+            // Once we've received draws for all keys, trigger animation
+            if (initialDrawsReceived.size >= expectedKeyCount) {
+                triggerKeyAnimation()
+            }
+        }
     })
 
     // Handle brightness
