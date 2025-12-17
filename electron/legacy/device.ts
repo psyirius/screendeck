@@ -185,6 +185,12 @@ export function getKeyIndexByControlId(deviceId: string, controlId: string): num
     return row * columns + column;
 }
 
+// Note: if everything right: keyIndex is just >>> str:`{y}/{x}` => str:'yx' => int:yx
+// and vice versa.
+// for example:
+// x=3, y=2 => str:'2/3' => str:'23' => int:23
+// int:23 => str:'23' => str:'2/3' => x=3, y=2
+
 export function getControlIdByXY(x: number, y: number): string {
     return `${y}/${x}`
 }
