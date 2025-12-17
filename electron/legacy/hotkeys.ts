@@ -1,6 +1,7 @@
 import { globalShortcut } from 'electron'
 import Store from 'electron-store'
 import { globalContext } from './global'
+import { getControlById, getControlIdByXY } from './device'
 
 const store = new Store()
 
@@ -23,8 +24,16 @@ export function registerHotkey(
         const y = Math.floor(keyIndex / columnCount)
 
         globalShortcut.register(hotkey, () => {
-            globalContext.satelliteClient?.keyDownXY(deviceId, x, y)
-            setTimeout(() => globalContext.satelliteClient?.keyUpXY(deviceId, x, y), 100)
+            const controlId = getControlIdByXY(x, y);
+            const control = getControlById(deviceId, controlId);
+            if (!control) {
+                throw new Error(`Control not found for device ${deviceId} at (${x}, ${y})`)
+            }
+            globalContext.satelliteClient?.keyDown(deviceId, controlId, control);
+            setTimeout(
+                () => globalContext.satelliteClient?.keyUp(deviceId, controlId, control),
+                100
+            )
         })
 
         // let imageBase64 = ''

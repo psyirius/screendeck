@@ -14,13 +14,47 @@ export interface DeviceRegisterOutputVariable {
 
 export interface DeviceRegisterProps {
     brightness: boolean
-    rowCount: number
-    columnCount: number
-    bitmapSize: number | null
-    colours: boolean
-    text: boolean
+    surfaceManifest: SatelliteSurfaceLayout
     transferVariables?: Array<DeviceRegisterInputVariable | DeviceRegisterOutputVariable>
     pincodeMap: SurfacePincodeMap | null
+}
+
+export interface DeviceRegisterPropsComplete extends DeviceRegisterProps {
+    gridSize: GridSize
+    fallbackBitmapSize: number
+}
+
+export interface SatelliteSurfaceLayout {
+    stylePresets: {
+        default: SatelliteControlStylePreset
+        [k: string]: SatelliteControlStylePreset
+    }
+    controls: {
+        [k: string]: SatelliteControlDefinition
+    }
+}
+
+export interface SatelliteControlStylePreset {
+    bitmap?: SatelliteConfigSize
+    text?: boolean
+    textStyle?: boolean
+    colors?: 'hex' | 'rgb'
+}
+
+export interface SatelliteConfigSize {
+    w: number
+    h: number
+}
+
+export interface GridSize {
+    rows: number
+    columns: number
+}
+
+export interface SatelliteControlDefinition {
+    row: number
+    column: number
+    stylePreset?: string
 }
 
 export type SurfacePincodeMap =
@@ -53,30 +87,45 @@ export interface SurfacePincodeMapPageEntry {
     9: [number, number]
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ClientCapabilities {
-    // For future use to support new functionality
+    supportsSurfaceManifest: boolean
 }
 
 export interface CompanionClient {
     get displayHost(): string
+    get capabilities(): ClientCapabilities
 
-    keyDownXY(deviceId: string, x: number, y: number): void
-    keyUpXY(deviceId: string, x: number, y: number): void
-    rotateLeftXY(deviceId: string, x: number, y: number): void
-    rotateRightXY(deviceId: string, x: number, y: number): void
-    pincodeKey(deviceId: string, keyCode: number): void
+    keyDown(
+        surfaceId: string,
+        controlId: string,
+        controlDefinition: SatelliteControlDefinition
+    ): void
+    keyUp(surfaceId: string, controlId: string, controlDefinition: SatelliteControlDefinition): void
+    rotateLeft(
+        surfaceId: string,
+        controlId: string,
+        controlDefinition: SatelliteControlDefinition
+    ): void
+    rotateRight(
+        surfaceId: string,
+        controlId: string,
+        controlDefinition: SatelliteControlDefinition
+    ): void
+    pincodeKey(surfaceId: string, keyCode: number): void
 
-    sendVariableValue(deviceId: string, variable: string, value: any): void
+    sendVariableValue(surfaceId: string, variable: string, value: any): void
 }
 
 export interface SurfaceProxyDrawProps {
     deviceId: string
-    keyIndex: number
+    keyIndex: number | undefined
+    controlId: string | undefined
     image?: Buffer
     color?: string // hex
     text?: string
 }
+
+// ------------------------------------------------------------------------------------------------------------------ //
 
 // Utility function to ensure a value is never
 export function assertNever(value: never): never {

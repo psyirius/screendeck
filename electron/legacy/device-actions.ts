@@ -1,8 +1,9 @@
 import Store from 'electron-store'
 import { defaultSettings } from './defaults'
 import { globalContext } from './global'
-import { createNewDevice } from './device'
+import { createNewDevice, getControlById, getControlIdByXY, refreshDeviceRegisterProps } from './device'
 import { createSatellite } from './utils'
+import { DeviceRegisterPropsComplete } from './lib/vendor/satellite/client-types'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -57,18 +58,25 @@ const emitKeyAction = (deviceId: string, x: number, y: number, action: string) =
         return
     }
 
+    const controlId = getControlIdByXY(x, y);
+    const control = getControlById(deviceId, controlId);
+
+    if (!control) {
+        throw new Error(`Control not found for device ${deviceId} at (${x}, ${y})`)
+    }
+
     switch (action) {
         case 'down':
-            globalContext.satelliteClient.keyDownXY(deviceId, x, y)
+            globalContext.satelliteClient.keyDown(deviceId, controlId, control)
             break
         case 'up':
-            globalContext.satelliteClient.keyUpXY(deviceId, x, y)
+            globalContext.satelliteClient.keyUp(deviceId, controlId, control)
             break
         case 'rotateLeft':
-            globalContext.satelliteClient.rotateLeftXY(deviceId, x, y)
+            globalContext.satelliteClient.rotateLeft(deviceId, controlId, control)
             break
         case 'rotateRight':
-            globalContext.satelliteClient.rotateRightXY(deviceId, x, y)
+            globalContext.satelliteClient.rotateRight(deviceId, controlId, control)
             break
     }
 }
@@ -140,15 +148,15 @@ const updateDeviceConfig = (deviceId: string, config: any) => {
         }
 
         globalContext.satelliteClient.removeDevice(deviceId)
-        globalContext.satelliteClient.addDevice(deviceId, 'ScreenDeck', {
-            columnCount: store.get(`device.${deviceId}.columnCount`, 8),
-            rowCount: store.get(`device.${deviceId}.rowCount`, 4),
-            bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
-            colours: true,
-            text: true,
-            brightness: true,
-            pincodeMap: null,
-        })
+
+        // Refresh the device register props in the store
+        refreshDeviceRegisterProps(deviceId)
+
+        globalContext.satelliteClient.addDevice(
+            deviceId,
+            'ScreenDeck',
+            store.get(`device.${deviceId}.registerProps`) as DeviceRegisterPropsComplete
+        )
     }
 
     return needsDeviceUpdate;
@@ -190,19 +198,19 @@ const deviceInit = (deviceId: string) => {
         throw new Error('Satellite client not initialized yet.')
     }
 
-    // add the device again (so that we get draw commands)
     globalContext.satelliteClient.removeDevice(deviceId)
-    globalContext.satelliteClient!.addDevice(deviceId, 'ScreenDeck', {
-        columnCount: store.get(`device.${deviceId}.columnCount`, 8),
-        rowCount: store.get(`device.${deviceId}.rowCount`, 4),
-        bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
-        colours: true,
-        text: true,
-        brightness: true,
-        pincodeMap: null,
-    })
 
-    return getDeviceConfig(deviceId);
+    // Refresh the device register props in the store
+    refreshDeviceRegisterProps(deviceId);
+
+    // add the device again (so that we get draw commands)
+    globalContext.satelliteClient.addDevice(
+        deviceId,
+        'ScreenDeck',
+        store.get(`device.${deviceId}.registerProps`) as DeviceRegisterPropsComplete
+    )
+
+    return getDeviceConfig(deviceId)
 }
 
 const saveConnectionSettings = (newSettings: any) => {

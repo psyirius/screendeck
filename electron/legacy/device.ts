@@ -7,6 +7,8 @@ import { showDevTools } from './utils'
 import { updateTrayMenu } from './tray'
 import { is } from '@electron-toolkit/utils'
 import { globalContext } from './global'
+import { createDeviceRegisterProps } from './lib/vendor/satellite/client-utils'
+import { SatelliteControlDefinition } from './lib/vendor/satellite/client-types'
 
 const store = new Store<SettingsType>({
     defaults: defaultSettings
@@ -159,6 +161,54 @@ export function showDeviceLabels(show: boolean) {
     })
 }
 
+export function getControlById(deviceId: string, controlId: string): SatelliteControlDefinition | null {
+    const registerProps = store.get(`device.${deviceId}.registerProps`) as any
+    if (!registerProps) {
+        return null
+    }
+    return registerProps.surfaceManifest.controls[controlId] || null
+}
+
+export function getKeyIndexByControlId(deviceId: string, controlId: string): number {
+    const columns = store.get(`device.${deviceId}.columnCount`) as number
+    if (!columns) {
+        return -1
+    }
+
+    const control = getControlById(deviceId, controlId)
+    if (!control) {
+        return -1
+    }
+
+    const { column, row } = control;
+
+    return row * columns + column;
+}
+
+export function getControlIdByXY(x: number, y: number): string {
+    return `${y}/${x}`
+}
+
+export function getControlByXY(
+    deviceId: string,
+    x: number,
+    y: number
+): SatelliteControlDefinition | null {
+    return getControlById(deviceId, getControlIdByXY(x, y))
+}
+
+export function refreshDeviceRegisterProps(deviceId: string) {
+    const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
+    const columns = store.get(`device.${deviceId}.columnCount`, 8)
+    const rows = store.get(`device.${deviceId}.rowCount`, 4)
+
+    const registerProps = createDeviceRegisterProps(rows, columns, {
+        w: bitmapSize,
+        h: bitmapSize,
+    })
+    store.set(`device.${deviceId}.registerProps`, registerProps)
+}
+
 // Create a new device with default settings
 export function createNewDevice(): string {
     const newDeviceId = generateDeviceId()
@@ -173,6 +223,18 @@ export function createNewDevice(): string {
     store.set(`device.${newDeviceId}.disablePress`, false) // Default to false
     store.set(`device.${newDeviceId}.backgroundColor`, '#000000') // Default black
     store.set(`device.${newDeviceId}.backgroundOpacity`, 0.5) // Default semi-transparent
+
+    {
+        const bitmapSize = store.get(`device.${newDeviceId}.bitmapSize`, 72)
+        const columns = store.get(`device.${newDeviceId}.columnCount`, 8)
+        const rows = store.get(`device.${newDeviceId}.rowCount`, 4)
+
+        const registerProps = createDeviceRegisterProps(rows, columns, {
+            w: bitmapSize,
+            h: bitmapSize,
+        })
+        store.set(`device.${newDeviceId}.registerProps`, registerProps)
+    }
 
     console.log(`Generated new deviceId: ${newDeviceId}`)
 

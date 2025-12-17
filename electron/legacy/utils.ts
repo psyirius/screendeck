@@ -3,7 +3,12 @@ import Store from 'electron-store'
 import ShortUniqueId from 'short-uuid'
 import { defaultSettings } from './defaults'
 import * as path from 'node:path'
-import { createNewDevice, showWindows } from './device'
+import {
+    createNewDevice,
+    getKeyIndexByControlId,
+    refreshDeviceRegisterProps,
+    showWindows,
+} from './device'
 import { CompanionSatelliteClient } from './lib/vendor/satellite/client'
 import { updateTrayMenu } from './tray'
 import { ProfilesStore } from './types'
@@ -12,6 +17,7 @@ import { unregisterAllHotkeys } from './hotkeys'
 import { is } from '@electron-toolkit/utils'
 import { globalContext } from './global'
 import { webDeviceActions } from './web-api'
+import type { DeviceRegisterPropsComplete } from './lib/vendor/satellite/client-types'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -50,15 +56,15 @@ export function createSatellite() {
             const deviceIds = store.get('deviceIds') as string[] | []
             for (const deviceId of deviceIds) {
                 console.log(`[Satellite] Adding device: ${deviceId}`)
-                globalContext.satelliteClient?.addDevice(deviceId, 'ScreenDeck', {
-                    columnCount: store.get(`device.${deviceId}.columnCount`, 8),
-                    rowCount: store.get(`device.${deviceId}.rowCount`, 4),
-                    bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
-                    colours: true,
-                    text: true,
-                    brightness: true,
-                    pincodeMap: null,
-                })
+
+                // Refresh the device register props in the store
+                refreshDeviceRegisterProps(deviceId)
+
+                globalContext.satelliteClient?.addDevice(
+                    deviceId,
+                    'ScreenDeck',
+                    store.get(`device.${deviceId}.registerProps`) as DeviceRegisterPropsComplete
+                )
             }
 
             updateTrayMenu()
@@ -82,6 +88,17 @@ export function createSatellite() {
             if (mapping.deviceId === data.deviceId && mapping.keyIndex === data.keyIndex) {
                 // Update the bitmap for this hotkey (optional redundancy)
                 mapping.imageBase64 = imageBase64 ?? ''
+            }
+        }
+
+        // keyIndex is deprecated in favor of controlId, but we still need it in our frontend until we fully switch
+        if (data.keyIndex === undefined) {
+            if (!data.controlId) {
+                throw new Error('Draw event missing both keyIndex and controlId')
+            }
+            data.keyIndex = getKeyIndexByControlId(data.deviceId, data.controlId)
+            if (data.keyIndex < 0) {
+                throw new Error(`Invalid controlId ${data.controlId} for device ${data.deviceId}`)
             }
         }
 
@@ -140,8 +157,8 @@ export function createSatellite() {
     globalContext.satelliteClient
         .connect({
             mode: 'tcp',
-            host: store.get('companionIP', '127.0.0.1') as string, // FIXME: use from settings
-            port: store.get('companionPort', 16622) as number, // FIXME: use from settings
+            host: store.get('companionIP', '127.0.0.1') as string,
+            port: store.get('companionPort', 16622) as number,
         })
         .then(() => {
             console.log('[Satellite] Connection established successfully')

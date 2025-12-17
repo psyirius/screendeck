@@ -1,10 +1,11 @@
-// https://github.com/bitfocus/companion-satellite/blob/v2.3.0/satellite/src/client.ts
+// https://github.com/bitfocus/companion-satellite/blob/v2.4.0/satellite/src/client.ts
 import { EventEmitter } from 'events'
 import {
     ClientCapabilities,
     CompanionClient,
-    DeviceRegisterProps,
     SurfaceProxyDrawProps,
+    SatelliteControlDefinition,
+    DeviceRegisterPropsComplete,
     assertNever,
     DEFAULT_TCP_PORT,
 } from './client-types'
@@ -135,6 +136,7 @@ export class CompanionSatelliteClient
     private _companionUnsupported = false
 
     private _supportsLocalLockState = false
+    private _supportsSurfaceManifest = false
 
     public get connectionDetails(): SomeConnectionDetails {
         return this._connectionDetails
@@ -154,6 +156,9 @@ export class CompanionSatelliteClient
 
     public get supportsLocalLockState(): boolean {
         return this._supportsLocalLockState
+    }
+    public get supportsSurfaceManifest(): boolean {
+        return this._supportsSurfaceManifest
     }
 
     public get displayHost(): string {
@@ -175,7 +180,7 @@ export class CompanionSatelliteClient
 
     public get capabilities(): ClientCapabilities {
         return {
-            // For future use
+            supportsSurfaceManifest: this._supportsSurfaceManifest,
         }
     }
 
@@ -424,18 +429,15 @@ export class CompanionSatelliteClient
             return
         }
 
-        // Revive for future checks
-        // const protocolVersion = params.ApiVersion
-        // if (typeof protocolVersion === 'string') {
-        // 	if (semver.lte('1.3.0', protocolVersion)) {
-        // 		this._supportsCombinedEncoders = true
-        // 		console.log('Companion supports combined encoders')
-        // 	}
+        // Perform api version checks
         if (this._companionApiVersion && semver.lte('1.8.0', this._companionApiVersion)) {
             this._supportsLocalLockState = true
             console.log('Companion supports delegating locking drawing')
         }
-        // }
+        if (this._companionApiVersion && semver.lte('1.9.0', this._companionApiVersion)) {
+            this._supportsSurfaceManifest = true
+            console.log('Companion supports surface manifest')
+        }
 
         // report the connection as ready
         setImmediate(() => {
@@ -445,17 +447,24 @@ export class CompanionSatelliteClient
 
     private handleState(params: Record<string, string | boolean>): void {
         if (typeof params.DEVICEID !== 'string') {
-            console.log('Missing DEVICEID in KEY-DRAW response')
-            return
-        }
-        if (typeof params.KEY !== 'string') {
-            console.log('Missing KEY in KEY-DRAW response')
+            console.log('Missing DEVICEID in KEY-STATE response')
             return
         }
 
-        const keyIndex = parseInt(params.KEY)
-        if (isNaN(keyIndex)) {
-            console.log('Bad KEY in KEY-DRAW response')
+        let keyIndex: number | undefined
+        let controlId: string | undefined
+        if (typeof params.CONTROLID === 'string') {
+            controlId = params.CONTROLID
+        } else if (typeof params.KEY === 'string') {
+            keyIndex = parseInt(params.KEY)
+            if (isNaN(keyIndex)) {
+                console.log('Bad KEY in KEY-STATE response')
+                return
+            }
+        }
+
+        if (keyIndex === undefined && controlId === undefined) {
+            console.log('Missing KEY and CONTROLID in KEY-STATE response')
             return
         }
 
@@ -467,7 +476,7 @@ export class CompanionSatelliteClient
                 : undefined
         const color = typeof params.COLOR === 'string' ? params.COLOR : undefined
 
-        this.emit('draw', { deviceId: params.DEVICEID, keyIndex, image, text, color })
+        this.emit('draw', { deviceId: params.DEVICEID, keyIndex, controlId, image, text, color })
     }
     private handleClear(params: Record<string, string | boolean>): void {
         if (typeof params.DEVICEID !== 'string') {
@@ -558,34 +567,54 @@ export class CompanionSatelliteClient
         this.emit('newDevice', { deviceId: params.DEVICEID })
     }
 
-    public keyDownXY(deviceId: string, x: number, y: number): void {
+    public keyDown(
+        deviceId: string,
+        controlId: string,
+        controlDefinition: SatelliteControlDefinition
+    ): void {
         if (this._connected && this.socket) {
             this.sendMessage('KEY-PRESS', null, deviceId, {
-                KEY: `${y}/${x}`,
+                CONTROLID: controlId,
+                KEY: `${controlDefinition.row}/${controlDefinition.column}`,
                 PRESSED: true,
             })
         }
     }
-    public keyUpXY(deviceId: string, x: number, y: number): void {
+    public keyUp(
+        deviceId: string,
+        controlId: string,
+        controlDefinition: SatelliteControlDefinition
+    ): void {
         if (this._connected && this.socket) {
             this.sendMessage('KEY-PRESS', null, deviceId, {
-                KEY: `${y}/${x}`,
+                CONTROLID: controlId,
+                KEY: `${controlDefinition.row}/${controlDefinition.column}`,
                 PRESSED: false,
             })
         }
     }
-    public rotateLeftXY(deviceId: string, x: number, y: number): void {
+    public rotateLeft(
+        deviceId: string,
+        controlId: string,
+        controlDefinition: SatelliteControlDefinition
+    ): void {
         if (this._connected && this.socket) {
             this.sendMessage('KEY-ROTATE', null, deviceId, {
-                KEY: `${y}/${x}`,
+                CONTROLID: controlId,
+                KEY: `${controlDefinition.row}/${controlDefinition.column}`,
                 DIRECTION: false,
             })
         }
     }
-    public rotateRightXY(deviceId: string, x: number, y: number): void {
+    public rotateRight(
+        deviceId: string,
+        controlId: string,
+        controlDefinition: SatelliteControlDefinition
+    ): void {
         if (this._connected && this.socket) {
             this.sendMessage('KEY-ROTATE', null, deviceId, {
-                KEY: `${y}/${x}`,
+                CONTROLID: controlId,
+                KEY: `${controlDefinition.row}/${controlDefinition.column}`,
                 DIRECTION: true,
             })
         }
@@ -610,7 +639,11 @@ export class CompanionSatelliteClient
         return this._registeredDevices.has(deviceId) || this._pendingDevices.has(deviceId)
     }
 
-    public addDevice(deviceId: string, productName: string, props: DeviceRegisterProps): void {
+    public addDevice(
+        deviceId: string,
+        productName: string,
+        props: DeviceRegisterPropsComplete
+    ): void {
         if (this._registeredDevices.has(deviceId)) {
             throw new Error('Device is already registered')
         }
@@ -627,17 +660,49 @@ export class CompanionSatelliteClient
                 JSON.stringify(props.transferVariables ?? [])
             ).toString('base64')
 
-            this.sendMessage('ADD-DEVICE', null, deviceId, {
-                PRODUCT_NAME: productName,
-                KEYS_TOTAL: props.columnCount * props.rowCount,
-                KEYS_PER_ROW: props.columnCount,
-                BITMAPS: props.bitmapSize ?? 0,
-                COLORS: props.colours,
-                TEXT: props.text,
-                VARIABLES: transferVariables,
-                BRIGHTNESS: props.brightness,
-                PINCODE_LOCK: props.pincodeMap ? 'FULL' : '',
-            })
+            const neededColours = new Set<string>()
+            for (const style of Object.values(props.surfaceManifest.stylePresets)) {
+                if (style.colors) {
+                    neededColours.add(style.colors)
+                }
+            }
+            if (neededColours.size > 1) {
+                throw new Error(
+                    `Surface ${deviceId} has multiple color styles. This is not compatible with all API versions`
+                )
+            }
+
+            if (this.supportsSurfaceManifest) {
+                this.sendMessage('ADD-DEVICE', null, deviceId, {
+                    PRODUCT_NAME: productName,
+                    LAYOUT_MANIFEST: Buffer.from(JSON.stringify(props.surfaceManifest)).toString(
+                        'base64'
+                    ),
+                    VARIABLES: transferVariables,
+                    BRIGHTNESS: props.brightness,
+                    PINCODE_LOCK: props.pincodeMap ? 'FULL' : '',
+                })
+            } else {
+                const needsText = Object.values(props.surfaceManifest.stylePresets).some(
+                    (s) => !!s.text
+                )
+                const needsTextStyle = Object.values(props.surfaceManifest.stylePresets).some(
+                    (s) => !!s.textStyle
+                )
+
+                this.sendMessage('ADD-DEVICE', null, deviceId, {
+                    PRODUCT_NAME: productName,
+                    KEYS_TOTAL: props.gridSize.columns * props.gridSize.rows,
+                    KEYS_PER_ROW: props.gridSize.columns,
+                    BITMAPS: props.fallbackBitmapSize,
+                    COLORS: neededColours.values().next().value || false,
+                    TEXT: needsText,
+                    TEXT_STYLE: needsTextStyle,
+                    VARIABLES: transferVariables,
+                    BRIGHTNESS: props.brightness,
+                    PINCODE_LOCK: props.pincodeMap ? 'FULL' : '',
+                })
+            }
         }
     }
 
