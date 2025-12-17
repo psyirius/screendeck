@@ -51,7 +51,8 @@ export function createSatellite() {
 
     globalContext.satelliteClient.on('connected', () => {
         console.log('[Satellite] Connected Event Received')
-        // Register devices
+
+        // Register devices/surfaces
         setTimeout(() => {
             const deviceIds = store.get('deviceIds') as string[] | []
             for (const deviceId of deviceIds) {
@@ -73,8 +74,8 @@ export function createSatellite() {
     })
 
     globalContext.satelliteClient.on('draw', (data) => {
-        console.log(`[Satellite] Draw event for device ${data.deviceId}`)
-        console.log('[Satellite] Draw data:', data)
+        console.log(`[Satellite] Draw: ${data.deviceId} (${data.keyIndex || data.controlId})`)
+        // console.log('[Satellite] Draw data:', data)
 
         const imageBase64 = data.image?.toString('base64') || undefined
 
@@ -265,6 +266,8 @@ export function saveProfile(profileName: string) {
 }
 
 export function loadProfile(profileId: string) {
+    console.log('Loading profile ID:', profileId);
+
     const profiles = store.get('profiles', {}) as ProfilesStore
     const profile = profiles[profileId]
 

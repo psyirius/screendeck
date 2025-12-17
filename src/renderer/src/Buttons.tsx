@@ -3,6 +3,7 @@ import { hexToRgba } from './color';
 import { getAPIClient } from '@/api/client';
 import logo from '@/assets/images/logo.png?url';
 import { XIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 // import { cn } from './lib/utils';
 
 const api = getAPIClient();
@@ -37,7 +38,7 @@ const styles = `
         gap: 10px;
         padding: 20px;
         background: rgba(0, 0, 0, 0.5);
-        border-radius: 8px;
+        /* border-radius: 8px; */
         /*backdrop-filter: blur(10px);*/
     }
 
@@ -129,8 +130,8 @@ const styles = `
     .close-button {
         app-region: no-drag;
         position: absolute;
-        top: 4px;
-        right: 4px;
+        top: 6px;
+        right: 6px;
         padding: 4px;
         background: rgba(0, 0, 0, 0.5);
         border: none;
@@ -148,23 +149,6 @@ const styles = `
         pointer-events: none;
         transition: opacity 0.3s ease;
     }*/
-
-    .close-button-settings {
-        app-region: no-drag;
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        background: rgba(0, 0, 0, 0.5);
-        border: none;
-        color: white;
-        font-size: 16px;
-        padding: 2px 6px;
-        cursor: pointer;
-        z-index: 100;
-        border-radius: 4px;
-        opacity: 1;
-        transition: opacity 0.2s ease;
-    }
 
     .window-container:hover .close-button {
         opacity: 1; /* Show on hover */
@@ -538,795 +522,798 @@ const InjectStyles = () => (
 //     )
 // });
 
-function LegacyButtons() {
-    type _InitOptions = {
-        DEVICE_ID: string
-        $elements: {
-            keypad: React.RefObject<HTMLElement | null>
-            logoOverlay: React.RefObject<HTMLElement | null>
-            closeButton: React.RefObject<HTMLElement | null>
-            lockIndicator: React.RefObject<HTMLElement | null>
-            deviceLabel: React.RefObject<HTMLElement | null>
-            loadingMessage: React.RefObject<HTMLElement | null>
-        }
-        $state: {
-            Columns: number
-            Rows: number
-            AutoHideOnLeave: boolean
-            HideEmptyKeys: boolean
-            OriginalBounds: {
-                height: number
-                width: number
-            } | null
-            AutoHideTimeout: ReturnType<typeof setTimeout> | null
-        }
-        $callbacks: {
-            onDeviceConfigReceived: (config: any) => void
-        }
-        // $actions: {
-        //
-        // }
+type _InitOptions = {
+    DEVICE_ID: string
+    $elements: {
+        keypad: React.RefObject<HTMLElement | null>
+        logoOverlay: React.RefObject<HTMLElement | null>
+        closeButton: React.RefObject<HTMLElement | null>
+        lockIndicator: React.RefObject<HTMLElement | null>
+        deviceLabel: React.RefObject<HTMLElement | null>
+        loadingMessage: React.RefObject<HTMLElement | null>
+    }
+    $state: {
+        Columns: number
+        Rows: number
+        AutoHideOnLeave: boolean
+        HideEmptyKeys: boolean
+        OriginalBounds: {
+            height: number
+            width: number
+        } | null
+        AutoHideTimeout: ReturnType<typeof setTimeout> | null
+    }
+    $callbacks: {
+        onDeviceConfigReceived: (config: any) => void
+    }
+    // $actions: {
+    //
+    // }
+}
+
+let _initDone = false;
+
+/**
+ * Initialization closure for the keypad window.
+ * Handles parsing URL params, setting up global listeners, and managing the keypad lifecycle.
+ */
+function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _InitOptions) {
+    if (_initDone) return;
+    _initDone = true;
+
+    if (!DEVICE_ID) {
+        console.error('No deviceId in query string')
+        throw new Error('No deviceId')
     }
 
-    const keypadRef = React.useRef<HTMLDivElement>(null);
-    const logoOverlayRef = React.useRef<HTMLDivElement>(null);
-    const closeButtonRef = React.useRef<HTMLButtonElement>(null);
-    const lockIndicatorRef = React.useRef<HTMLDivElement>(null);
-    const deviceLabelRef = React.useRef<HTMLDivElement>(null);
-    const loadingMessageRef = React.useRef<HTMLDivElement>(null)
+    const keyElements: HTMLElement[] = []
+    const activeKeys = new Set<number>()
 
-    /**
-     * Initialization closure for the keypad window.
-     * Handles parsing URL params, setting up global listeners, and managing the keypad lifecycle.
-     */
-    function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _InitOptions) {
-        if ((_init as any).done) return
-
-        if (!DEVICE_ID) {
-            console.error('No deviceId in query string')
-            throw new Error('No deviceId')
-        }
-
-        const keyElements: HTMLElement[] = []
-        const activeKeys = new Set<number>()
-
-        const keyStates = new Map<
-            string,
-            Map<
-                number,
-                {
-                    keyIndex: string | null
-                    bitmap: string | null
-                    text: string | null
-                    color: string | null
-                    imageBase64: string | null
-                }
-            >
-        >() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
-
-        // Request config from main process
-        // using deviceInit instead of getDeviceConfig to trigger re-add the device to satellite
-        api.deviceInit(DEVICE_ID).then((config) => {
-            $callbacks.onDeviceConfigReceived(config)
-
-            const { autoHide, hideEmptyKeys, backgroundColor, backgroundOpacity } = config
-
-            $state.AutoHideOnLeave = autoHide || false
-            $state.HideEmptyKeys = hideEmptyKeys || false
-
-            const keypad = $elements.keypad.current!
-            const logoOverlay = $elements.logoOverlay.current!
-            const closeButton = $elements.closeButton.current!
-
-            keypad.style.backgroundColor = hexToRgba(backgroundColor, backgroundOpacity ?? 0.5)
-
-            /**
-             * Hides the keypad when the mouse leaves the window (if auto-hide is enabled).
-             * Fades out the keypad, shows the logo overlay, and shrinks the window.
-             */
-            function hideKeypad() {
-                if (!$state.AutoHideOnLeave) return
-
-                console.log('Hiding keypad for device:', DEVICE_ID)
-
-                // Fade out keypad
-                keypad.style.opacity = '0'
-                keypad.style.pointerEvents = 'none'
-
-                // Show and fade in logo
-                logoOverlay.style.display = 'flex'
-                setTimeout(() => {
-                    logoOverlay.style.opacity = '1'
-                    logoOverlay.style.transform = 'scale(1)'
-                    logoOverlay.style.backgroundColor = keypad.style.backgroundColor
-                }, 10)
-
-                // Save current size before shrinking
-                api.getKeypadBounds(DEVICE_ID).then((bounds) => {
-                    $state.OriginalBounds = bounds
-                    const bitmapSize = bounds.bitmapSize || 72
-                    api.resizeKeypadWindow({
-                        deviceId: DEVICE_ID,
-                        width: bitmapSize + 50, // 50px padding
-                        height: bitmapSize + 50, // 50px padding
-                    })
-                })
+    const keyStates = new Map<
+        string,
+        Map<
+            number,
+            {
+                keyIndex: string | null
+                bitmap: string | null
+                text: string | null
+                color: string | null
+                imageBase64: string | null
             }
+        >
+    >() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
 
-            /**
-             * Shows the keypad when the mouse enters the window.
-             * Fades in the keypad, hides the logo overlay, and restores the window size.
-             */
-            function showKeypad() {
-                if (!$state.AutoHideOnLeave || !$state.OriginalBounds) return
+    // Request config from main process
+    // using deviceInit instead of getDeviceConfig to trigger re-add the device to satellite
+    api.deviceInit(DEVICE_ID).then((config) => {
+        $callbacks.onDeviceConfigReceived(config)
 
-                console.log('Showing keypad for device:', DEVICE_ID)
+        const { autoHide, hideEmptyKeys, backgroundColor, backgroundOpacity } = config
 
-                // Hide logo smoothly
-                logoOverlay.style.opacity = '0'
-                logoOverlay.style.transform = 'scale(0.95)'
+        $state.AutoHideOnLeave = autoHide || false
+        $state.HideEmptyKeys = hideEmptyKeys || false
 
-                setTimeout(() => {
-                    logoOverlay.style.display = 'none'
-                    keypad.style.opacity = '1'
-                    keypad.style.pointerEvents = 'auto'
-                }, 300)
+        const keypad = $elements.keypad.current!
+        const logoOverlay = $elements.logoOverlay.current!
+        const closeButton = $elements.closeButton.current!
 
-                // Restore original size
+        keypad.style.backgroundColor = hexToRgba(backgroundColor, backgroundOpacity ?? 0.5)
+
+        /**
+         * Hides the keypad when the mouse leaves the window (if auto-hide is enabled).
+         * Fades out the keypad, shows the logo overlay, and shrinks the window.
+         */
+        function hideKeypad() {
+            if (!$state.AutoHideOnLeave) return
+
+            console.log('Hiding keypad for device:', DEVICE_ID)
+
+            // Fade out keypad
+            keypad.style.opacity = '0'
+            keypad.style.pointerEvents = 'none'
+
+            // Show and fade in logo
+            logoOverlay.style.display = 'flex'
+            setTimeout(() => {
+                logoOverlay.style.opacity = '1'
+                logoOverlay.style.transform = 'scale(1)'
+                logoOverlay.style.backgroundColor = keypad.style.backgroundColor
+            }, 10)
+
+            // Save current size before shrinking
+            api.getKeypadBounds(DEVICE_ID).then((bounds) => {
+                $state.OriginalBounds = bounds
+                const bitmapSize = bounds.bitmapSize || 72
                 api.resizeKeypadWindow({
                     deviceId: DEVICE_ID,
-                    width: $state.OriginalBounds.width,
-                    height: $state.OriginalBounds.height,
+                    width: bitmapSize + 50, // 50px padding
+                    height: bitmapSize + 50, // 50px padding
                 })
-            }
-
-            window.addEventListener('mouseleave', () => {
-                closeButton.style.opacity = '0'
-                closeButton.style.pointerEvents = 'none'
-
-                console.log('Mouse left window, hiding keypad for device:', DEVICE_ID)
-                if ($state.AutoHideOnLeave) {
-                    $state.AutoHideTimeout = setTimeout(hideKeypad, 500) // small delay
-                }
             })
-
-            window.addEventListener('mouseenter', () => {
-                closeButton.style.opacity = '1'
-                closeButton.style.pointerEvents = 'auto'
-
-                console.log('Mouse entered window, showing keypad for device:', DEVICE_ID)
-                if ($state.AutoHideTimeout) {
-                    clearTimeout($state.AutoHideTimeout)
-                    $state.AutoHideTimeout = null
-                }
-                if ($state.AutoHideOnLeave) {
-                    showKeypad()
-                }
-            })
-
-            window.addEventListener('mousemove', (e) => {
-                const threshold = 50 // pixels
-
-                if (
-                    e.clientX < threshold ||
-                    e.clientY < threshold ||
-                    e.clientX > window.innerWidth - threshold ||
-                    e.clientY > window.innerHeight - threshold
-                ) {
-                    showKeypad()
-                }
-            })
-
-            const columnCount = config.columnCount || 0
-            $state.Columns = columnCount
-            const rowCount = config.rowCount || 0
-            $state.Rows = rowCount
-
-            if (columnCount <= 0 || rowCount <= 0) {
-                console.warn(`No keys defined for ${DEVICE_ID}. Hiding UI.`)
-                document.body.style.backgroundColor = 'transparent'
-                keypad.style.display = 'none'
-                closeButton.style.display = 'none'
-                return
-            }
-
-            buildKeyGrid(columnCount, rowCount)
-        })
-
-        /**
-         * Builds the grid of key elements based on the device configuration.
-         * @param {number} columnCount - Number of columns in the grid.
-         * @param {number} rowCount - Number of rows in the grid.
-         */
-        function buildKeyGrid(columnCount: number, rowCount: number) {
-            const keypad = $elements.keypad.current!
-
-            $state.Columns = columnCount
-            $state.Rows = rowCount
-
-            keypad.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`
-
-            // Remove existing keys
-            keypad.querySelectorAll('.key').forEach((key) => key.remove())
-            keyElements.length = 0
-
-            const keysTotal = columnCount * rowCount
-
-            for (let i = 0; i < keysTotal; i++) {
-                const keyElement = document.createElement('div')!
-                keyElement.className = 'key'
-                keyElement.dataset.index = String(i)
-                //keyElement.style.display = 'flex'
-                keypad.appendChild(keyElement)
-                keyElements.push(keyElement)
-
-                refreshKey(DEVICE_ID, i)
-            }
-
-            //checkKeyStates()
-
-            //updateGridLayout() // Initial layout calc after grid build
         }
 
-        // function checkKeyStates() {
-        //     if (!keyStates || keyStates.size === 0) {
-        //         console.log('No key states found for device:', deviceId)
-        //         // Show loading message
-        //         //document.getElementById('loadingMessage').style.display = 'block'
-        //         //find all elements with class 'key' and hide them
-        //         document.querySelectorAll('.key').forEach((key) => {
-        //             //key.style.visibility = 'hidden'
-        //         })
-        //     } else {
-        //         document.getElementById('loadingMessage').style.display = 'none'
-        //         document.getElementById('keypad').style.display = 'grid'
-        //         //find all elements with class 'key' and show them
-        //         document.querySelectorAll('.key').forEach((key) => {
-        //             key.style.visibility = 'visible'
-        //         })
-        //     }
-        // }
-        //
-        // let currentMaxColumns = 0
-        // let currentMaxRows = 0
-        //
-        // function updateGridLayout() {
-        //     const keypad = document.getElementById('keypad')
-        //     if (!_opt.state.HideEmptyKeys) {
-        //         keypad.style.gridTemplateColumns = `repeat(${$state.Columns}, 1fr)`
-        //         currentMaxColumns = $state.Columns
-        //         currentMaxRows = $state.Rows
-        //         return
-        //     }
-        //
-        //     let maxCols = 0
-        //     let maxRow = 0
-        //     for (let row = 0; row < $state.Rows; row++) {
-        //         let rowHasContent = false
-        //         let rowCols = 0
-        //         for (let col = 0; col < $state.Columns; col++) {
-        //             const index = row * $state.Columns + col
-        //             const keyEl = keyElements[index]
-        //             if (keyEl && keyEl.style.display !== 'none') {
-        //                 rowHasContent = true
-        //                 rowCols++
-        //             }
-        //         }
-        //         if (rowHasContent) {
-        //             maxRow++
-        //             if (rowCols > maxCols) maxCols = rowCols
-        //         }
-        //     }
-        //
-        //     currentMaxColumns = maxCols || 1
-        //     currentMaxRows = maxRow || 1
-        //
-        //     keypad.style.gridTemplateColumns = `repeat(${currentMaxColumns}, 1fr)`
-        // }
-
-        let activeContextMenu: HTMLElement | null = null
-
         /**
-         * Shows a context menu for a specific key.
-         * Allows setting encoder/button mode or assigning hotkeys.
-         * @param {MouseEvent} e - The mouse event that triggered the menu.
-         * @param {number} keyIndex - The index of the key.
+         * Shows the keypad when the mouse enters the window.
+         * Fades in the keypad, hides the logo overlay, and restores the window size.
          */
-        function showContextMenu(e: MouseEvent, keyIndex: number) {
-            e.preventDefault()
+        function showKeypad() {
+            if (!$state.AutoHideOnLeave || !$state.OriginalBounds) return
 
-            // Remove existing menu if one is already open
-            if (activeContextMenu) {
-                activeContextMenu.remove()
-                activeContextMenu = null
+            console.log('Showing keypad for device:', DEVICE_ID)
+
+            // Hide logo smoothly
+            logoOverlay.style.opacity = '0'
+            logoOverlay.style.transform = 'scale(0.95)'
+
+            setTimeout(() => {
+                logoOverlay.style.display = 'none'
+                keypad.style.opacity = '1'
+                keypad.style.pointerEvents = 'auto'
+            }, 300)
+
+            // Restore original size
+            api.resizeKeypadWindow({
+                deviceId: DEVICE_ID,
+                width: $state.OriginalBounds.width,
+                height: $state.OriginalBounds.height,
+            })
+        }
+
+        window.addEventListener('mouseleave', () => {
+            closeButton.style.opacity = '0'
+            closeButton.style.pointerEvents = 'none'
+
+            console.log('Mouse left window, hiding keypad for device:', DEVICE_ID)
+            if ($state.AutoHideOnLeave) {
+                $state.AutoHideTimeout = setTimeout(hideKeypad, 500) // small delay
             }
+        })
 
-            // Create the menu
-            const menu = document.createElement('div')
-            menu.classList.add('context-menu')
-            menu.style.position = 'fixed'
-            menu.innerHTML = `
+        window.addEventListener('mouseenter', () => {
+            closeButton.style.opacity = '1'
+            closeButton.style.pointerEvents = 'auto'
+
+            console.log('Mouse entered window, showing keypad for device:', DEVICE_ID)
+            if ($state.AutoHideTimeout) {
+                clearTimeout($state.AutoHideTimeout)
+                $state.AutoHideTimeout = null
+            }
+            if ($state.AutoHideOnLeave) {
+                showKeypad()
+            }
+        })
+
+        window.addEventListener('mousemove', (e) => {
+            const threshold = 50 // pixels
+
+            if (
+                e.clientX < threshold ||
+                e.clientY < threshold ||
+                e.clientX > window.innerWidth - threshold ||
+                e.clientY > window.innerHeight - threshold
+            ) {
+                showKeypad()
+            }
+        })
+
+        const columnCount = config.columnCount || 0
+        $state.Columns = columnCount
+        const rowCount = config.rowCount || 0
+        $state.Rows = rowCount
+
+        if (columnCount <= 0 || rowCount <= 0) {
+            console.warn(`No keys defined for ${DEVICE_ID}. Hiding UI.`)
+            document.body.style.backgroundColor = 'transparent'
+            keypad.style.display = 'none'
+            closeButton.style.display = 'none'
+            return
+        }
+
+        buildKeyGrid(columnCount, rowCount)
+    })
+
+    /**
+     * Builds the grid of key elements based on the device configuration.
+     * @param {number} columnCount - Number of columns in the grid.
+     * @param {number} rowCount - Number of rows in the grid.
+     */
+    function buildKeyGrid(columnCount: number, rowCount: number) {
+        const keypad = $elements.keypad.current!
+
+        $state.Columns = columnCount
+        $state.Rows = rowCount
+
+        keypad.style.gridTemplateColumns = `repeat(${columnCount}, 1fr)`
+
+        // Remove existing keys
+        keypad.querySelectorAll('.key').forEach((key) => key.remove())
+        keyElements.length = 0
+
+        const keysTotal = columnCount * rowCount
+
+        for (let i = 0; i < keysTotal; i++) {
+            const keyElement = document.createElement('div')!
+            keyElement.className = 'key'
+            keyElement.dataset.index = String(i)
+            //keyElement.style.display = 'flex'
+            keypad.appendChild(keyElement)
+            keyElements.push(keyElement)
+
+            refreshKey(DEVICE_ID, i)
+        }
+
+        //checkKeyStates()
+
+        //updateGridLayout() // Initial layout calc after grid build
+    }
+
+    // function checkKeyStates() {
+    //     if (!keyStates || keyStates.size === 0) {
+    //         console.log('No key states found for device:', deviceId)
+    //         // Show loading message
+    //         //document.getElementById('loadingMessage').style.display = 'block'
+    //         //find all elements with class 'key' and hide them
+    //         document.querySelectorAll('.key').forEach((key) => {
+    //             //key.style.visibility = 'hidden'
+    //         })
+    //     } else {
+    //         document.getElementById('loadingMessage').style.display = 'none'
+    //         document.getElementById('keypad').style.display = 'grid'
+    //         //find all elements with class 'key' and show them
+    //         document.querySelectorAll('.key').forEach((key) => {
+    //             key.style.visibility = 'visible'
+    //         })
+    //     }
+    // }
+    //
+    // let currentMaxColumns = 0
+    // let currentMaxRows = 0
+    //
+    // function updateGridLayout() {
+    //     const keypad = document.getElementById('keypad')
+    //     if (!_opt.state.HideEmptyKeys) {
+    //         keypad.style.gridTemplateColumns = `repeat(${$state.Columns}, 1fr)`
+    //         currentMaxColumns = $state.Columns
+    //         currentMaxRows = $state.Rows
+    //         return
+    //     }
+    //
+    //     let maxCols = 0
+    //     let maxRow = 0
+    //     for (let row = 0; row < $state.Rows; row++) {
+    //         let rowHasContent = false
+    //         let rowCols = 0
+    //         for (let col = 0; col < $state.Columns; col++) {
+    //             const index = row * $state.Columns + col
+    //             const keyEl = keyElements[index]
+    //             if (keyEl && keyEl.style.display !== 'none') {
+    //                 rowHasContent = true
+    //                 rowCols++
+    //             }
+    //         }
+    //         if (rowHasContent) {
+    //             maxRow++
+    //             if (rowCols > maxCols) maxCols = rowCols
+    //         }
+    //     }
+    //
+    //     currentMaxColumns = maxCols || 1
+    //     currentMaxRows = maxRow || 1
+    //
+    //     keypad.style.gridTemplateColumns = `repeat(${currentMaxColumns}, 1fr)`
+    // }
+
+    let activeContextMenu: HTMLElement | null = null
+
+    /**
+     * Shows a context menu for a specific key.
+     * Allows setting encoder/button mode or assigning hotkeys.
+     * @param {MouseEvent} e - The mouse event that triggered the menu.
+     * @param {number} keyIndex - The index of the key.
+     */
+    function showContextMenu(e: MouseEvent, keyIndex: number) {
+        e.preventDefault()
+
+        // Remove existing menu if one is already open
+        if (activeContextMenu) {
+            activeContextMenu.remove()
+            activeContextMenu = null
+        }
+
+        // Create the menu
+        const menu = document.createElement('div')
+        menu.classList.add('context-menu')
+        menu.style.position = 'fixed'
+        menu.innerHTML = `
         <div class="menu-item" data-action="encoder">Set to Encoder Mode</div>
         <div class="menu-item" data-action="button">Set to Button Mode</div>
         <div class="menu-item" data-action="hotkey">Assign Hotkey...</div>
         `
 
-            document.body.appendChild(menu)
-            activeContextMenu = menu
+        document.body.appendChild(menu)
+        activeContextMenu = menu
 
-            // Calculate position to keep it on-screen
-            const padding = 10 // px from edges
-            const menuRect = menu.getBoundingClientRect() // Get default size
+        // Calculate position to keep it on-screen
+        const padding = 10 // px from edges
+        const menuRect = menu.getBoundingClientRect() // Get default size
 
-            let top = e.clientY
-            let left = e.clientX
+        let top = e.clientY
+        let left = e.clientX
 
-            // Adjust vertical position if too low
-            if (top + menuRect.height > window.innerHeight - padding) {
-                top = window.innerHeight - menuRect.height - padding
-            }
-            if (top < padding) {
-                top = padding
-            }
+        // Adjust vertical position if too low
+        if (top + menuRect.height > window.innerHeight - padding) {
+            top = window.innerHeight - menuRect.height - padding
+        }
+        if (top < padding) {
+            top = padding
+        }
 
-            // Adjust horizontal position if too far right
-            if (left + menuRect.width > window.innerWidth - padding) {
-                left = window.innerWidth - menuRect.width - padding
-            }
-            if (left < padding) {
-                left = padding
-            }
+        // Adjust horizontal position if too far right
+        if (left + menuRect.width > window.innerWidth - padding) {
+            left = window.innerWidth - menuRect.width - padding
+        }
+        if (left < padding) {
+            left = padding
+        }
 
-            menu.style.top = `${top}px`
-            menu.style.left = `${left}px`
+        menu.style.top = `${top}px`
+        menu.style.left = `${left}px`
 
-            // Handle menu item clicks
-            const handleAction = (action) => {
-                if (!action) return
+        // Handle menu item clicks
+        const handleAction = (action) => {
+            if (!action) return
 
-                if (action === 'encoder') {
-                    api.updateKeyConfig({
-                        deviceId: DEVICE_ID,
-                        keyIndex,
-                        config: { isEncoder: true },
-                    }).then(() => refreshKey(DEVICE_ID, keyIndex))
-                } else if (action === 'button') {
-                    api.updateKeyConfig({
-                        deviceId: DEVICE_ID,
-                        keyIndex,
-                        config: { isEncoder: false },
-                    }).then(() => refreshKey(DEVICE_ID, keyIndex))
-                } else if (action === 'hotkey') {
-                    let keyConfig = keyStates.get(DEVICE_ID)?.get(keyIndex)
-                    let imageBase64 = keyConfig?.imageBase64 || null
-                    api.setHotkeyContext({
-                        deviceId: DEVICE_ID,
-                        keyIndex,
-                        imageBase64,
-                    })
-                    api.openHotkeyPrompt()
-                }
-
-                closeContextMenu()
-            }
-
-            menu.addEventListener('mousedown', (evt) => {
-                evt.stopPropagation() // Prevent click-through to document
-            })
-
-            menu.querySelectorAll('.menu-item').forEach((item) => {
-                item.addEventListener('click', (evt) => {
-                    evt.stopPropagation()
-                    const el = evt.target as HTMLElement
-                    const action = el.getAttribute('data-action')
-                    handleAction(action)
+            if (action === 'encoder') {
+                api.updateKeyConfig({
+                    deviceId: DEVICE_ID,
+                    keyIndex,
+                    config: { isEncoder: true },
+                }).then(() => refreshKey(DEVICE_ID, keyIndex))
+            } else if (action === 'button') {
+                api.updateKeyConfig({
+                    deviceId: DEVICE_ID,
+                    keyIndex,
+                    config: { isEncoder: false },
+                }).then(() => refreshKey(DEVICE_ID, keyIndex))
+            } else if (action === 'hotkey') {
+                let keyConfig = keyStates.get(DEVICE_ID)?.get(keyIndex)
+                let imageBase64 = keyConfig?.imageBase64 || null
+                api.setHotkeyContext({
+                    deviceId: DEVICE_ID,
+                    keyIndex,
+                    imageBase64,
                 })
-            })
+                api.openHotkeyPrompt()
+            }
 
-            // Delay closing the menu to avoid accidental loss
-            setTimeout(() => {
-                document.addEventListener(
-                    'mousedown',
-                    function docClickOutside(evt) {
-                        if (!menu.contains(evt.target as HTMLElement)) {
-                            closeContextMenu()
-                            document.removeEventListener('mousedown', docClickOutside)
+            closeContextMenu()
+        }
+
+        menu.addEventListener('mousedown', (evt) => {
+            evt.stopPropagation() // Prevent click-through to document
+        })
+
+        menu.querySelectorAll('.menu-item').forEach((item) => {
+            item.addEventListener('click', (evt) => {
+                evt.stopPropagation()
+                const el = evt.target as HTMLElement
+                const action = el.getAttribute('data-action')
+                handleAction(action)
+            })
+        })
+
+        // Delay closing the menu to avoid accidental loss
+        setTimeout(() => {
+            document.addEventListener(
+                'mousedown',
+                function docClickOutside(evt) {
+                    if (!menu.contains(evt.target as HTMLElement)) {
+                        closeContextMenu()
+                        document.removeEventListener('mousedown', docClickOutside)
+                    }
+                },
+                { once: true }
+            )
+        }, 10)
+    }
+
+    /**
+     * Refreshes the configuration and state of a single key.
+     * Re-binds event listeners and updates visual state.
+     * @param {string} deviceId - The device ID.
+     * @param {number} keyIndex - The index of the key to refresh.
+     */
+    function refreshKey(deviceId: string, keyIndex) {
+        api.getKeyConfig({ deviceId, keyIndex }).then((keyConfig) => {
+            const keyElement = keyElements[keyIndex]
+            if (!keyElement) return
+
+            // Update encoder class
+            if (keyConfig.isEncoder) {
+                keyElement.classList.add('encoder')
+            } else {
+                keyElement.classList.remove('encoder')
+            }
+
+            // Rebind mousedown event
+            keyElement.replaceWith(keyElement.cloneNode(true))
+            const newKeyElement = document.querySelector(`[data-index="${keyIndex}"]`)!
+            keyElements[keyIndex] = newKeyElement as HTMLElement
+            bindKeyEvents(newKeyElement, keyIndex, keyConfig)
+
+            const state = keyStates.get(deviceId)?.get(keyIndex)
+            if (state) {
+                processKey(state)
+            }
+        })
+    }
+
+    /**
+     * Binds mouse events (mousedown, mouseup, contextmenu) to a key element.
+     * Handles encoder rotation simulation and standard button presses.
+     * @param {HTMLElement} key - The key DOM element.
+     * @param {number} i - The key index.
+     * @param {object} keyConfig - The configuration object for the key.
+     */
+    function bindKeyEvents(key, i, keyConfig) {
+        key.addEventListener('mousedown', (e) => {
+            console.log('in mouse down for key:', i)
+            if (e.button === 2) {
+                return
+            }
+
+            const isEncoder = keyConfig.isEncoder
+            const stepSize = keyConfig.stepSize || 10
+
+            console.log('isEncoder:', isEncoder, 'stepSize:', stepSize)
+
+            if (isEncoder) {
+                e.preventDefault()
+
+                let accumulatedDeltaX = 0
+                let lastX = e.clientX
+
+                const onMove = (moveEvent) => {
+                    const deltaX = moveEvent.clientX - lastX
+                    accumulatedDeltaX += deltaX
+
+                    let direction: ('rotateRight' | 'rotateLeft') | null = null
+                    while (Math.abs(accumulatedDeltaX) >= stepSize) {
+                        direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
+                        sendKeyPress(i, direction)
+
+                        if (accumulatedDeltaX > 0) {
+                            accumulatedDeltaX -= stepSize
+                        } else {
+                            accumulatedDeltaX += stepSize
                         }
-                    },
-                    { once: true }
+                    }
+
+                    if (direction) {
+                        key.classList.add(direction)
+                        key.classList.remove(
+                            direction === 'rotateRight' ? 'rotateLeft' : 'rotateRight'
+                        )
+                    }
+
+                    lastX = moveEvent.clientX
+                }
+
+                const onUp = () => {
+                    window.removeEventListener('mousemove', onMove)
+                    window.removeEventListener('mouseup', onUp)
+                    key.classList.remove('rotateLeft', 'rotateRight')
+                }
+
+                window.addEventListener('mousemove', onMove)
+                window.addEventListener('mouseup', onUp)
+            } else {
+                activeKeys.add(i)
+                sendKeyPress(i, 'down')
+            }
+        })
+
+        key.addEventListener('mouseup', () => {
+            activeKeys.delete(i)
+            sendKeyPress(i, 'up')
+        })
+
+        // Add context menu again
+        key.addEventListener('contextmenu', (e) => showContextMenu(e, i))
+    }
+
+    /**
+     * Closes the currently active context menu.
+     */
+    function closeContextMenu() {
+        if (activeContextMenu) {
+            activeContextMenu.remove()
+            activeContextMenu = null
+        }
+    }
+
+    // Global listener to close the menu when clicking anywhere else
+    document.addEventListener('click', (evt) => {
+        if (!(evt.target as HTMLElement).closest('.context-menu')) {
+            closeContextMenu()
+        }
+    })
+
+    /**
+     * Sends a key press event to the main process.
+     * Converts linear index to x,y coordinates.
+     * @param {number} keyIndex - The linear index of the key.
+     * @param {string} action - The action (down, up, rotateLeft, rotateRight).
+     */
+    function sendKeyPress(keyIndex, action) {
+        const x = keyIndex % $state.Columns
+        const y = Math.floor(keyIndex / $state.Columns)
+
+        sendKeyPressXY(x, y, action)
+    }
+
+    /**
+     * Sends the formatted key press payload to Electron.
+     * @param {number} x - The x coordinate (column).
+     * @param {number} y - The y coordinate (row).
+     * @param {string} action - The action type.
+     */
+    function sendKeyPressXY(x, y, action) {
+        api.keyPress({
+            deviceId: DEVICE_ID,
+            x,
+            y,
+            action,
+        })
+    }
+
+    api.onShowDeviceLabel((data) => {
+        const deviceLabel = $elements.deviceLabel.current!
+
+        deviceLabel.textContent = data.deviceId
+        deviceLabel.style.display = data.show ? 'block' : 'none';
+    })
+
+    api.onDisablePress((_, disabled) => {
+        const keypad = $elements.keypad.current!;
+        const lock = $elements.lockIndicator.current!;
+
+        keypad.classList.toggle('disabled', disabled)
+        lock.style.display = disabled ? 'block' : 'none'
+    })
+
+    api.onAutoHide((_, autoHide) => {
+        $state.AutoHideOnLeave = autoHide
+    })
+
+    api.onHideEmptyKeys((_, hideEmptyKeys) => {
+        $state.HideEmptyKeys = hideEmptyKeys
+        //logic to hide empty keys
+    })
+
+    api.onIdentify(() => {
+        const keypad = $elements.keypad.current!
+
+        // Apply flash - yellow in rgba
+        keypad.style.backgroundColor = 'rgba(255, 255, 0, 1)'
+        //add transition for smooth effect
+        keypad.style.transition = 'background-color 0.5s ease'
+
+        setTimeout(() => {
+            api.getDeviceConfig(DEVICE_ID).then((config) => {
+                console.log('got config:', config)
+                const { backgroundColor, backgroundOpacity } = config
+
+                keypad.style.backgroundColor = hexToRgba(
+                    backgroundColor,
+                    backgroundOpacity ?? 0.5
                 )
-            }, 10)
-        }
-
-        /**
-         * Refreshes the configuration and state of a single key.
-         * Re-binds event listeners and updates visual state.
-         * @param {string} deviceId - The device ID.
-         * @param {number} keyIndex - The index of the key to refresh.
-         */
-        function refreshKey(deviceId: string, keyIndex) {
-            api.getKeyConfig({ deviceId, keyIndex }).then((keyConfig) => {
-                const keyElement = keyElements[keyIndex]
-                if (!keyElement) return
-
-                // Update encoder class
-                if (keyConfig.isEncoder) {
-                    keyElement.classList.add('encoder')
-                } else {
-                    keyElement.classList.remove('encoder')
-                }
-
-                // Rebind mousedown event
-                keyElement.replaceWith(keyElement.cloneNode(true))
-                const newKeyElement = document.querySelector(`[data-index="${keyIndex}"]`)!
-                keyElements[keyIndex] = newKeyElement as HTMLElement
-                bindKeyEvents(newKeyElement, keyIndex, keyConfig)
-
-                const state = keyStates.get(deviceId)?.get(keyIndex)
-                if (state) {
-                    processKey(state)
-                }
             })
+        }, 800)
+    })
+
+    api.onUpdateBackground((_, data) => {
+        console.log('Updating background:', data)
+
+        const keypad = $elements.keypad.current!
+
+        keypad.style.backgroundColor = hexToRgba(data.backgroundColor, data.backgroundOpacity)
+    })
+
+    api.onRebuildGrid((_, { columnCount, rowCount }) => {
+        $state.Columns = columnCount
+        buildKeyGrid(columnCount, rowCount)
+    })
+
+    // Handle key events from Companion
+    api.onDraw((_event, keyObj) => {
+        if (keyObj.deviceId !== DEVICE_ID) return
+
+        if (!keyStates.has(keyObj.deviceId)) {
+            keyStates.set(keyObj.deviceId, new Map())
         }
 
-        /**
-         * Binds mouse events (mousedown, mouseup, contextmenu) to a key element.
-         * Handles encoder rotation simulation and standard button presses.
-         * @param {HTMLElement} key - The key DOM element.
-         * @param {number} i - The key index.
-         * @param {object} keyConfig - The configuration object for the key.
-         */
-        function bindKeyEvents(key, i, keyConfig) {
-            key.addEventListener('mousedown', (e) => {
-                console.log('in mouse down for key:', i)
-                if (e.button === 2) {
+        keyStates.get(keyObj.deviceId)!.set(keyObj.keyIndex, keyObj)
+        processKey(keyObj)
+    })
+
+    // Handle brightness
+    api.onBrightness((_event, brightness) => {
+        adjustBrightness(brightness)
+    })
+
+    const closeButton = $elements.closeButton.current!;
+
+    // Close button
+    closeButton.addEventListener('click', () => {
+        api.closeKeypad(DEVICE_ID) // Send deviceId so main process knows which to close
+    })
+
+    /**
+     * Updates the visual state of a key based on data from Companion.
+     * Handles bitmaps, text, colors, and visibility.
+     * @param {object} keyObj - The key state object.
+     */
+    function processKey(keyObj) {
+        console.log('Processing key:', keyObj)
+
+        const keypad = $elements.keypad.current!;
+        const loadingMessage = $elements.loadingMessage.current!
+
+        loadingMessage.style.display = 'none'
+        keypad.style.display = 'grid'
+
+        const keyIndex = keyObj.keyIndex
+        const bitmap = keyObj.imageBase64
+        const { color, textColor, text, fontSize } = keyObj
+
+        if (keyIndex < 0 || keyIndex >= keyElements.length) {
+            console.warn(
+                'Skipping invalid key index:',
+                keyIndex,
+                'Total keys:',
+                keyElements.length
+            )
+            return
+        }
+
+        const keyElement = keyElements[keyIndex]
+        if (!keyElement) {
+            console.warn('No keyElement found for key:', keyIndex)
+            return
+        }
+
+        // TODO: ???
+        const textSpan = keyElement.querySelector('span')
+        // let isEmpty = !bitmap && !color && !text
+
+        if ($state.HideEmptyKeys) {
+            if (keyObj.imageBase64 || keyObj.text || keyObj.color) {
+                keyElement.style.display = 'flex'
+            } else {
+                keyElement.style.display = 'none'
+            }
+        } else {
+            keyElement.style.display = 'flex'
+        }
+
+        // If Companion sends a bitmap, render it
+        if (bitmap) {
+            renderBitmap(keyElement, bitmap, keyIndex)
+            return
+        }
+
+        // Otherwise, update color/text if provided
+        if (color) {
+            keyElement.style.backgroundColor = color
+        } else {
+            keyElement.style.backgroundColor = ''
+        }
+
+        if (textSpan) {
+            if (text) {
+                try {
+                    textSpan.textContent = atob(text)
+                } catch (err) {
+                    console.warn('Invalid base64 text, using raw:', text)
+                    textSpan.textContent = text
+                }
+            } else {
+                textSpan.textContent = ''
+            }
+
+            textSpan.style.color = textColor || ''
+            textSpan.style.fontSize = fontSize || ''
+        }
+
+        //checkKeyStates()
+        //updateGridLayout()
+    }
+
+    // Brightness
+    /**
+     * Adjusts the keypad opacity based on brightness setting.
+     * @param {number} brightness - Brightness level (0-100).
+     */
+    function adjustBrightness(brightness) {
+        const keypad = $elements.keypad.current!
+        keypad.style.opacity = String(brightness / 100)
+    }
+
+    // Bitmap Rendering: Accepts base64-encoded raw RGB bitmap
+    /**
+     * Renders a raw RGB bitmap onto a canvas within the key element.
+     * @param {HTMLElement} container - The key element container.
+     * @param {string} bitmapBase64 - Base64 encoded raw RGB bitmap data.
+     */
+    function renderBitmap(container, bitmapBase64, keyIndex) {
+        requestAnimationFrame(() => {
+            console.log('Rendering bitmap for key', keyIndex)
+            try {
+                const binary = atob(bitmapBase64)
+                const bytes = new Uint8Array(binary.length)
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i)
+                }
+
+                const size = Math.sqrt(bytes.length / 3)
+                if (!Number.isInteger(size)) {
+                    console.warn('Bitmap data length does not result in a perfect square.')
                     return
                 }
 
-                const isEncoder = keyConfig.isEncoder
-                const stepSize = keyConfig.stepSize || 10
-
-                console.log('isEncoder:', isEncoder, 'stepSize:', stepSize)
-
-                if (isEncoder) {
-                    e.preventDefault()
-
-                    let accumulatedDeltaX = 0
-                    let lastX = e.clientX
-
-                    const onMove = (moveEvent) => {
-                        const deltaX = moveEvent.clientX - lastX
-                        accumulatedDeltaX += deltaX
-
-                        let direction: ('rotateRight' | 'rotateLeft') | null = null
-                        while (Math.abs(accumulatedDeltaX) >= stepSize) {
-                            direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
-                            sendKeyPress(i, direction)
-
-                            if (accumulatedDeltaX > 0) {
-                                accumulatedDeltaX -= stepSize
-                            } else {
-                                accumulatedDeltaX += stepSize
-                            }
-                        }
-
-                        if (direction) {
-                            key.classList.add(direction)
-                            key.classList.remove(
-                                direction === 'rotateRight' ? 'rotateLeft' : 'rotateRight'
-                            )
-                        }
-
-                        lastX = moveEvent.clientX
-                    }
-
-                    const onUp = () => {
-                        window.removeEventListener('mousemove', onMove)
-                        window.removeEventListener('mouseup', onUp)
-                        key.classList.remove('rotateLeft', 'rotateRight')
-                    }
-
-                    window.addEventListener('mousemove', onMove)
-                    window.addEventListener('mouseup', onUp)
-                } else {
-                    activeKeys.add(i)
-                    sendKeyPress(i, 'down')
-                }
-            })
-
-            key.addEventListener('mouseup', () => {
-                activeKeys.delete(i)
-                sendKeyPress(i, 'up')
-            })
-
-            // Add context menu again
-            key.addEventListener('contextmenu', (e) => showContextMenu(e, i))
-        }
-
-        /**
-         * Closes the currently active context menu.
-         */
-        function closeContextMenu() {
-            if (activeContextMenu) {
-                activeContextMenu.remove()
-                activeContextMenu = null
-            }
-        }
-
-        // Global listener to close the menu when clicking anywhere else
-        document.addEventListener('click', (evt) => {
-            if (!(evt.target as HTMLElement).closest('.context-menu')) {
-                closeContextMenu()
-            }
-        })
-
-        /**
-         * Sends a key press event to the main process.
-         * Converts linear index to x,y coordinates.
-         * @param {number} keyIndex - The linear index of the key.
-         * @param {string} action - The action (down, up, rotateLeft, rotateRight).
-         */
-        function sendKeyPress(keyIndex, action) {
-            const x = keyIndex % $state.Columns
-            const y = Math.floor(keyIndex / $state.Columns)
-
-            sendKeyPressXY(x, y, action)
-        }
-
-        /**
-         * Sends the formatted key press payload to Electron.
-         * @param {number} x - The x coordinate (column).
-         * @param {number} y - The y coordinate (row).
-         * @param {string} action - The action type.
-         */
-        function sendKeyPressXY(x, y, action) {
-            api.keyPress({
-                deviceId: DEVICE_ID,
-                x,
-                y,
-                action,
-            })
-        }
-
-        api.onShowDeviceLabel((data) => {
-            const deviceLabel = $elements.deviceLabel.current!
-
-            deviceLabel.textContent = data.deviceId
-            deviceLabel.style.display = data.show ? 'block' : 'none';
-        })
-
-        api.onDisablePress((_, disabled) => {
-            const keypad = $elements.keypad.current!;
-            const lock = $elements.lockIndicator.current!;
-
-            keypad.classList.toggle('disabled', disabled)
-            lock.style.display = disabled ? 'block' : 'none'
-        })
-
-        api.onAutoHide((_, autoHide) => {
-            $state.AutoHideOnLeave = autoHide
-        })
-
-        api.onHideEmptyKeys((_, hideEmptyKeys) => {
-            $state.HideEmptyKeys = hideEmptyKeys
-            //logic to hide empty keys
-        })
-
-        api.onIdentify(() => {
-            const keypad = $elements.keypad.current!
-
-            // Apply flash - yellow in rgba
-            keypad.style.backgroundColor = 'rgba(255, 255, 0, 1)'
-            //add transition for smooth effect
-            keypad.style.transition = 'background-color 0.5s ease'
-
-            setTimeout(() => {
-                api.getDeviceConfig(DEVICE_ID).then((config) => {
-                    console.log('got config:', config)
-                    const { backgroundColor, backgroundOpacity } = config
-
-                    keypad.style.backgroundColor = hexToRgba(
-                        backgroundColor,
-                        backgroundOpacity ?? 0.5
-                    )
-                })
-            }, 800)
-        })
-
-        api.onUpdateBackground((_, data) => {
-            console.log('Updating background:', data)
-
-            const keypad = $elements.keypad.current!
-
-            keypad.style.backgroundColor = hexToRgba(data.backgroundColor, data.backgroundOpacity)
-        })
-
-        api.onRebuildGrid((_, { columnCount, rowCount }) => {
-            $state.Columns = columnCount
-            buildKeyGrid(columnCount, rowCount)
-        })
-
-        // Handle key events from Companion
-        api.onDraw((_event, keyObj) => {
-            if (keyObj.deviceId !== DEVICE_ID) return
-
-            if (!keyStates.has(keyObj.deviceId)) {
-                keyStates.set(keyObj.deviceId, new Map())
-            }
-
-            keyStates.get(keyObj.deviceId)!.set(keyObj.keyIndex, keyObj)
-            processKey(keyObj)
-        })
-
-        // Handle brightness
-        api.onBrightness((_event, brightness) => {
-            adjustBrightness(brightness)
-        })
-
-        const closeButton = $elements.closeButton.current!;
-
-        // Close button
-        closeButton.addEventListener('click', () => {
-            api.closeKeypad(DEVICE_ID) // Send deviceId so main process knows which to close
-        })
-
-        /**
-         * Updates the visual state of a key based on data from Companion.
-         * Handles bitmaps, text, colors, and visibility.
-         * @param {object} keyObj - The key state object.
-         */
-        function processKey(keyObj) {
-            console.log('Processing key:', keyObj)
-
-            const keypad = $elements.keypad.current!;
-            const loadingMessage = $elements.loadingMessage.current!
-
-            loadingMessage.style.display = 'none'
-            keypad.style.display = 'grid'
-
-            const keyIndex = keyObj.keyIndex
-            const bitmap = keyObj.imageBase64
-            const { color, textColor, text, fontSize } = keyObj
-
-            if (keyIndex < 0 || keyIndex >= keyElements.length) {
-                console.warn(
-                    'Skipping invalid key index:',
-                    keyIndex,
-                    'Total keys:',
-                    keyElements.length
-                )
-                return
-            }
-
-            const keyElement = keyElements[keyIndex]
-            if (!keyElement) {
-                console.warn('No keyElement found for key:', keyIndex)
-                return
-            }
-
-            // TODO: ???
-            const textSpan = keyElement.querySelector('span')
-            // let isEmpty = !bitmap && !color && !text
-
-            if ($state.HideEmptyKeys) {
-                if (keyObj.imageBase64 || keyObj.text || keyObj.color) {
-                    keyElement.style.display = 'flex'
-                } else {
-                    keyElement.style.display = 'none'
-                }
-            } else {
-                keyElement.style.display = 'flex'
-            }
-
-            // If Companion sends a bitmap, render it
-            if (bitmap) {
-                renderBitmap(keyElement, bitmap, keyIndex)
-                return
-            }
-
-            // Otherwise, update color/text if provided
-            if (color) {
-                keyElement.style.backgroundColor = color
-            } else {
-                keyElement.style.backgroundColor = ''
-            }
-
-            if (textSpan) {
-                if (text) {
-                    try {
-                        textSpan.textContent = atob(text)
-                    } catch (err) {
-                        console.warn('Invalid base64 text, using raw:', text)
-                        textSpan.textContent = text
-                    }
-                } else {
-                    textSpan.textContent = ''
+                let canvas = container.querySelector('canvas')
+                if (!canvas) {
+                    canvas = document.createElement('canvas')
+                    container.innerHTML = ''
+                    container.appendChild(canvas)
                 }
 
-                textSpan.style.color = textColor || ''
-                textSpan.style.fontSize = fontSize || ''
-            }
+                canvas.width = size
+                canvas.height = size
+                const ctx = canvas.getContext('2d')
+                const imageData = ctx.createImageData(size, size)
 
-            //checkKeyStates()
-            //updateGridLayout()
-        }
-
-        // Brightness
-        /**
-         * Adjusts the keypad opacity based on brightness setting.
-         * @param {number} brightness - Brightness level (0-100).
-         */
-        function adjustBrightness(brightness) {
-            const keypad = $elements.keypad.current!
-            keypad.style.opacity = String(brightness / 100)
-        }
-
-        // Bitmap Rendering: Accepts base64-encoded raw RGB bitmap
-        /**
-         * Renders a raw RGB bitmap onto a canvas within the key element.
-         * @param {HTMLElement} container - The key element container.
-         * @param {string} bitmapBase64 - Base64 encoded raw RGB bitmap data.
-         */
-        function renderBitmap(container, bitmapBase64, keyIndex) {
-            requestAnimationFrame(() => {
-                console.log('Rendering bitmap for key', keyIndex)
-                try {
-                    const binary = atob(bitmapBase64)
-                    const bytes = new Uint8Array(binary.length)
-                    for (let i = 0; i < binary.length; i++) {
-                        bytes[i] = binary.charCodeAt(i)
-                    }
-
-                    const size = Math.sqrt(bytes.length / 3)
-                    if (!Number.isInteger(size)) {
-                        console.warn('Bitmap data length does not result in a perfect square.')
-                        return
-                    }
-
-                    let canvas = container.querySelector('canvas')
-                    if (!canvas) {
-                        canvas = document.createElement('canvas')
-                        container.innerHTML = ''
-                        container.appendChild(canvas)
-                    }
-
-                    canvas.width = size
-                    canvas.height = size
-                    const ctx = canvas.getContext('2d')
-                    const imageData = ctx.createImageData(size, size)
-
-                    for (let i = 0, j = 0; i < bytes.length; i += 3, j += 4) {
-                        imageData.data[j] = bytes[i]
-                        imageData.data[j + 1] = bytes[i + 1]
-                        imageData.data[j + 2] = bytes[i + 2]
-                        imageData.data[j + 3] = 255
-                    }
-
-                    ctx.putImageData(imageData, 0, 0)
-
-                    // Optional: Convert the canvas into a PNG base64 (for other uses)
-                    // const dataUrl = canvas.toDataURL('image/png')
-                } catch (err) {
-                    console.error('Error decoding bitmap:', err)
+                for (let i = 0, j = 0; i < bytes.length; i += 3, j += 4) {
+                    imageData.data[j] = bytes[i]
+                    imageData.data[j + 1] = bytes[i + 1]
+                    imageData.data[j + 2] = bytes[i + 2]
+                    imageData.data[j + 3] = 255
                 }
-            })
-        }
 
-        window.addEventListener('mouseup', () => {
-            activeKeys.forEach((keyIndex) => {
-                sendKeyPress(keyIndex, 'up')
-            })
-            activeKeys.clear()
-        })
+                ctx.putImageData(imageData, 0, 0)
 
-        window.addEventListener('blur', () => {
-            activeKeys.forEach((keyIndex) => {
-                sendKeyPress(keyIndex, 'up')
-            })
-            activeKeys.clear()
+                // Optional: Convert the canvas into a PNG base64 (for other uses)
+                // const dataUrl = canvas.toDataURL('image/png')
+            } catch (err) {
+                console.error('Error decoding bitmap:', err)
+            }
         })
-        ;(_init as any).done = true
     }
+
+    window.addEventListener('mouseup', () => {
+        activeKeys.forEach((keyIndex) => {
+            sendKeyPress(keyIndex, 'up')
+        })
+        activeKeys.clear()
+    })
+
+    window.addEventListener('blur', () => {
+        activeKeys.forEach((keyIndex) => {
+            sendKeyPress(keyIndex, 'up')
+        })
+        activeKeys.clear()
+    })
+}
+
+function LegacyButtons() {
+
+    const keypadRef = React.useRef<HTMLDivElement>(null);
+    const logoOverlayRef = React.useRef<HTMLDivElement>(null);
+    const closeButtonRef = React.useRef<HTMLButtonElement>(null)
+    const lockIndicatorRef = React.useRef<HTMLDivElement>(null);
+    const deviceLabelRef = React.useRef<HTMLDivElement>(null);
+    const loadingMessageRef = React.useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search)
@@ -1384,15 +1371,60 @@ function LegacyButtons() {
         })
     });
 
+    const [draggingIntent, setDraggingIntent] = React.useState(false);
+
+    if (api.is('electron')) {
+        // an effect to listen for ctrl key down/up to show dragging intent
+        useEffect(() => {
+            // TODO: improve accessibility
+
+            function onKeyDown(e: KeyboardEvent) {
+                console.log('key down:', e.key);
+                if (e.key === 'Control') {
+                    setDraggingIntent(true)
+                }
+            }
+            function onKeyUp(e: KeyboardEvent) {
+                console.log('key up:', e.key);
+                if (e.key === 'Control') {
+                    setDraggingIntent(false)
+                }
+            }
+
+            // also handle when mouse enters the window with ctrl already held down
+            function onMouseEnter(e: MouseEvent) {
+                console.log('mouse enter:', e.ctrlKey)
+                if (e.ctrlKey) {
+                    setDraggingIntent(true)
+                }
+            }
+
+            window.addEventListener('keydown', onKeyDown)
+            window.addEventListener('keyup', onKeyUp)
+            window.addEventListener('mouseenter', onMouseEnter)
+
+            return () => {
+                window.removeEventListener('keydown', onKeyDown)
+                window.removeEventListener('keyup', onKeyUp)
+                window.removeEventListener('mouseenter', onMouseEnter)
+            }
+        }, []);
+    }
+
     return (
-        <div className="window-container">
+        <div
+            className="window-container"
+            style={{
+                backgroundColor: api.is('electron') ? 'transparent' : 'gray',
+            }}
+        >
             {/* Close and labels */}
             <button
                 id="closeButton"
                 className="close-button"
                 ref={closeButtonRef}
                 style={{
-                    display: api.is('electron') ? 'block' : 'none'
+                    display: api.is('electron') ? 'block' : 'none',
                 }}
             >
                 <XIcon className="size-3" />
@@ -1403,7 +1435,15 @@ function LegacyButtons() {
             <div id="device-label" className="device-label" ref={deviceLabelRef}></div>
 
             {/* The main content area */}
-            <div id="keypad" className="keypad" ref={keypadRef}>
+            <div
+                id="keypad"
+                className="keypad"
+                style={{
+                    borderRadius: api.is('electron') ? '16px' : '0px',
+                    border: api.is('electron') ? '2px solid red' : 'none',
+                }}
+                ref={keypadRef}
+            >
                 <div id="loadingMessage" ref={loadingMessageRef}>
                     <img src={logo} alt="ScreenDeck Logo" />
                 </div>
@@ -1438,6 +1478,21 @@ function LegacyButtons() {
                     }}
                 />
             </div>
+            {/* Drag Layer when control is clicked */}
+            {api.is('electron') && (
+                <div
+                    className={cn('absolute top-0 left-0 w-full h-full', {
+                        'bg-amber-100/25': draggingIntent,
+                        'cursor-move': draggingIntent,
+                        'pointer-events-none': !draggingIntent,
+                        '[app-region:drag]': draggingIntent,
+                    })}
+                    style={{
+                        borderRadius: '16px',
+                        border: '2px solid red',
+                    }}
+                ></div>
+            )}
         </div>
     )
 }

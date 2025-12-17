@@ -147,6 +147,7 @@ const updateDeviceConfig = (deviceId: string, config: any) => {
             throw new Error('Satellite client not initialized yet.')
         }
 
+        console.log(`Device ${deviceId} config changed, updating Satellite client...`)
         globalContext.satelliteClient.removeDevice(deviceId)
 
         // Refresh the device register props in the store
@@ -180,6 +181,7 @@ const deleteDevice = (deviceId: string) => {
         throw new Error('Satellite client not initialized yet.')
     }
 
+    console.log(`Removing device ${deviceId} from Satellite client...`)
     globalContext.satelliteClient.removeDevice(deviceId)
 }
 
@@ -198,6 +200,7 @@ const deviceInit = (deviceId: string) => {
         throw new Error('Satellite client not initialized yet.')
     }
 
+    console.log(`Initializing device ${deviceId} in Satellite client...`)
     globalContext.satelliteClient.removeDevice(deviceId)
 
     // Refresh the device register props in the store

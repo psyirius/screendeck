@@ -8,6 +8,8 @@
 - [ ] Support for different DPI settings
 - [ ] Support for different screen orientations (landscape/portrait)
 - [ ] Satellite Style Connecting Graphics on Keys.
+- [ ] Orientation change handling.
+- [ ] Cached button re-drawing to minimize duplicate rendering.
 
 ## GitHub issues
 - [ ] Show ScreenDeck on startup
