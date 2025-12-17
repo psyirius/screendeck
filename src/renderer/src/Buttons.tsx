@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { hexToRgba } from './color';
 import { getAPIClient } from '@/api/client';
 import logo from '@/assets/images/logo.png?url';
+import { XIcon } from 'lucide-react'
 // import { cn } from './lib/utils';
 
 const api = getAPIClient();
@@ -10,7 +11,7 @@ const api = getAPIClient();
 const styles = `
     /* Allow the main body area to be draggable */
     body {
-        -webkit-app-region: drag;
+        app-region: drag;
         margin: 0;
         padding: 0;
         display: flex;
@@ -27,7 +28,7 @@ const styles = `
         display: flex;
         justify-content: flex-end;
         align-items: center;
-        -webkit-app-region: drag;
+        app-region: drag;
     }
 
     /* Keypad styles */
@@ -60,7 +61,7 @@ const styles = `
 
     /* Button and interactive elements should not affect drag */
     .key {
-        -webkit-app-region: no-drag;
+        app-region: no-drag;
         position: relative;
         background-color: #444;
         color: white;
@@ -126,18 +127,18 @@ const styles = `
     }
 
     .close-button {
-        -webkit-app-region: no-drag;
+        app-region: no-drag;
         position: absolute;
-        top: 5px;
-        right: 5px;
+        top: 4px;
+        right: 4px;
+        padding: 4px;
         background: rgba(0, 0, 0, 0.5);
         border: none;
         color: white;
-        font-size: 12px;
-        padding: 2px 6px;
         cursor: pointer;
         z-index: 100;
-        border-radius: 4px;
+        border-radius: 9999px;
+        aspect-ratio: 1 / 1;
         opacity: 0; /* Hide by default */
         transition: opacity 0.2s ease;
     }
@@ -149,7 +150,7 @@ const styles = `
     }*/
 
     .close-button-settings {
-        -webkit-app-region: no-drag;
+        app-region: no-drag;
         position: absolute;
         top: 5px;
         right: 5px;
@@ -279,7 +280,7 @@ const styles = `
     }
 
     .lock-indicator {
-        -webkit-app-region: no-drag;
+        app-region: no-drag;
         position: absolute;
         top: 5px;
         left: 5px;
@@ -544,6 +545,9 @@ function LegacyButtons() {
             keypad: React.RefObject<HTMLElement | null>
             logoOverlay: React.RefObject<HTMLElement | null>
             closeButton: React.RefObject<HTMLElement | null>
+            lockIndicator: React.RefObject<HTMLElement | null>
+            deviceLabel: React.RefObject<HTMLElement | null>
+            loadingMessage: React.RefObject<HTMLElement | null>
         }
         $state: {
             Columns: number
@@ -555,10 +559,10 @@ function LegacyButtons() {
                 width: number
             } | null
             AutoHideTimeout: ReturnType<typeof setTimeout> | null
-        },
+        }
         $callbacks: {
             onDeviceConfigReceived: (config: any) => void
-        },
+        }
         // $actions: {
         //
         // }
@@ -567,6 +571,9 @@ function LegacyButtons() {
     const keypadRef = React.useRef<HTMLDivElement>(null);
     const logoOverlayRef = React.useRef<HTMLDivElement>(null);
     const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+    const lockIndicatorRef = React.useRef<HTMLDivElement>(null);
+    const deviceLabelRef = React.useRef<HTMLDivElement>(null);
+    const loadingMessageRef = React.useRef<HTMLDivElement>(null)
 
     /**
      * Initialization closure for the keypad window.
@@ -1082,21 +1089,18 @@ function LegacyButtons() {
         }
 
         api.onShowDeviceLabel((data) => {
-            const label = document.getElementById('device-label')
-            if (label) {
-                label.textContent = data.deviceId
-                label.style.display = data.show ? 'block' : 'none'
-            }
+            const deviceLabel = $elements.deviceLabel.current!
+
+            deviceLabel.textContent = data.deviceId
+            deviceLabel.style.display = data.show ? 'block' : 'none';
         })
 
         api.onDisablePress((_, disabled) => {
-            const keypad = document.getElementById('keypad')
-            const lock = document.getElementById('lockIndicator')
+            const keypad = $elements.keypad.current!;
+            const lock = $elements.lockIndicator.current!;
 
-            if (keypad && lock) {
-                keypad.classList.toggle('disabled', disabled)
-                lock.style.display = disabled ? 'block' : 'none'
-            }
+            keypad.classList.toggle('disabled', disabled)
+            lock.style.display = disabled ? 'block' : 'none'
         })
 
         api.onAutoHide((_, autoHide) => {
@@ -1131,7 +1135,9 @@ function LegacyButtons() {
 
         api.onUpdateBackground((_, data) => {
             console.log('Updating background:', data)
-            const keypad = document.getElementById('keypad')!
+
+            const keypad = $elements.keypad.current!
+
             keypad.style.backgroundColor = hexToRgba(data.backgroundColor, data.backgroundOpacity)
         })
 
@@ -1157,8 +1163,10 @@ function LegacyButtons() {
             adjustBrightness(brightness)
         })
 
+        const closeButton = $elements.closeButton.current!;
+
         // Close button
-        document.getElementById('closeButton')!.addEventListener('click', () => {
+        closeButton.addEventListener('click', () => {
             api.closeKeypad(DEVICE_ID) // Send deviceId so main process knows which to close
         })
 
@@ -1170,8 +1178,11 @@ function LegacyButtons() {
         function processKey(keyObj) {
             console.log('Processing key:', keyObj)
 
-            document.getElementById('loadingMessage')!.style.display = 'none'
-            document.getElementById('keypad')!.style.display = 'grid'
+            const keypad = $elements.keypad.current!;
+            const loadingMessage = $elements.loadingMessage.current!
+
+            loadingMessage.style.display = 'none'
+            keypad.style.display = 'grid'
 
             const keyIndex = keyObj.keyIndex
             const bitmap = keyObj.imageBase64
@@ -1193,6 +1204,7 @@ function LegacyButtons() {
                 return
             }
 
+            // TODO: ???
             const textSpan = keyElement.querySelector('span')
             // let isEmpty = !bitmap && !color && !text
 
@@ -1245,7 +1257,7 @@ function LegacyButtons() {
          * @param {number} brightness - Brightness level (0-100).
          */
         function adjustBrightness(brightness) {
-            const keypad = document.getElementById('keypad')!
+            const keypad = $elements.keypad.current!
             keypad.style.opacity = String(brightness / 100)
         }
 
@@ -1331,6 +1343,9 @@ function LegacyButtons() {
                 keypad: keypadRef,
                 logoOverlay: logoOverlayRef,
                 closeButton: closeButtonRef,
+                lockIndicator: lockIndicatorRef,
+                deviceLabel: deviceLabelRef,
+                loadingMessage: loadingMessageRef,
             },
             $state: {
                 Columns: 0,
@@ -1344,22 +1359,23 @@ function LegacyButtons() {
                 onDeviceConfigReceived: (config: any) => {
                     console.log('Device config received:', config)
 
-                    const columns = config.columnCount || 0;
-                    const rows = config.rowCount || 0;
-                    const totalKeys = columns * rows;
+                    const columns = config.columnCount || 0
+                    const rows = config.rowCount || 0
+                    const totalKeys = columns * rows
 
-                    console.log('Total keys:', totalKeys);
+                    console.log('Total keys:', totalKeys)
 
                     const keyConfigs = Promise.all(
-                        Array.from({ length: totalKeys }, (_, i) => i)
-                            .map(keyIndex => api.getKeyConfig({ deviceId, keyIndex }))
-                    );
+                        Array.from({ length: totalKeys }, (_, i) => i).map((keyIndex) =>
+                            api.getKeyConfig({ deviceId, keyIndex })
+                        )
+                    )
 
                     // {isEncoder: false, stepSize: 10}
 
                     keyConfigs.then((configs) => {
-                        console.log('Key configs:', configs);
-                    });
+                        console.log('Key configs:', configs)
+                    })
                 },
             },
             // $actions: {
@@ -1371,19 +1387,27 @@ function LegacyButtons() {
     return (
         <div className="window-container">
             {/* Close and labels */}
-            <button id="closeButton" className="close-button" ref={closeButtonRef}>
-                ×
+            <button
+                id="closeButton"
+                className="close-button"
+                ref={closeButtonRef}
+                style={{
+                    display: api.is('electron') ? 'block' : 'none'
+                }}
+            >
+                <XIcon className="size-3" />
             </button>
-            <div id="lockIndicator" className="lock-indicator">
+            <div id="lockIndicator" className="lock-indicator" ref={lockIndicatorRef}>
                 🔒
             </div>
-            <div id="device-label" className="device-label"></div>
+            <div id="device-label" className="device-label" ref={deviceLabelRef}></div>
 
             {/* The main content area */}
             <div id="keypad" className="keypad" ref={keypadRef}>
-                <div id="loadingMessage">
+                <div id="loadingMessage" ref={loadingMessageRef}>
                     <img src={logo} alt="ScreenDeck Logo" />
                 </div>
+                {/* keys goes here */}
             </div>
 
             {/* The logo overlay that shows when collapsed */}
