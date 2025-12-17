@@ -25,6 +25,14 @@
 - [ ] Resize Deck Window on Device configuration change.
 - [ ] key rendering optimizations. (commit: 1f067314e2705e8e38363bb1aa548c4edfd18147)
   - introduced some glitches at the edges of the keys.
+- add more controls. (use surface devices from satellite repo)
+- in mobile web:
+  - prevent screen dimming/sleeping while in use.
+  - aware of minimize and backgrounding.
+    - when backgrounded, pause updates to conserve battery.
+    - when foregrounded, resume updates. (may need to re-establish connection)
+- Mobile native app?
+- Migrate to expo?
 
 ## GitHub issues
 - [ ] Show ScreenDeck on startup

@@ -1098,6 +1098,8 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
 
                 let accumulatedDeltaX = 0
                 let lastX = e.clientX
+                let didRotate = false // Track if any rotation occurred
+                const startX = e.clientX
 
                 const onMove = (moveEvent) => {
                     const deltaX = moveEvent.clientX - lastX
@@ -1105,6 +1107,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
 
                     let direction: ('rotateRight' | 'rotateLeft') | null = null
                     while (Math.abs(accumulatedDeltaX) >= stepSize) {
+                        didRotate = true
                         direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
                         sendKeyPress(i, direction)
 
@@ -1125,10 +1128,17 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     lastX = moveEvent.clientX
                 }
 
-                const onUp = () => {
+                const onUp = (upEvent) => {
                     window.removeEventListener('mousemove', onMove)
                     window.removeEventListener('mouseup', onUp)
                     key.classList.remove('rotateLeft', 'rotateRight')
+
+                    // If no rotation occurred, treat as a click
+                    const totalMovement = Math.abs(upEvent.clientX - startX)
+                    if (!didRotate && totalMovement < stepSize) {
+                        sendKeyPress(i, 'down')
+                        sendKeyPress(i, 'up')
+                    }
                 }
 
                 window.addEventListener('mousemove', onMove)
@@ -1140,8 +1150,10 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         })
 
         key.addEventListener('mouseup', () => {
-            activeKeys.delete(i)
-            sendKeyPress(i, 'up')
+            if (!isEncoder) {
+                activeKeys.delete(i)
+                sendKeyPress(i, 'up')
+            }
         })
 
         // --- Touch Events ---
@@ -1154,6 +1166,8 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 const touch = e.touches[0]
                 let accumulatedDeltaX = 0
                 let lastX = touch.clientX
+                let didRotate = false // Track if any rotation occurred
+                const startX = touch.clientX
 
                 const onTouchMove = (moveEvent: TouchEvent) => {
                     const moveTouch = moveEvent.touches[0]
@@ -1164,6 +1178,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
 
                     let direction: ('rotateRight' | 'rotateLeft') | null = null
                     while (Math.abs(accumulatedDeltaX) >= stepSize) {
+                        didRotate = true
                         direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
                         sendKeyPress(i, direction)
                         triggerHapticFeedback(5) // Lighter feedback for encoder steps
@@ -1185,11 +1200,19 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     lastX = moveTouch.clientX
                 }
 
-                const onTouchEnd = () => {
+                const onTouchEnd = (endEvent: TouchEvent) => {
                     window.removeEventListener('touchmove', onTouchMove)
                     window.removeEventListener('touchend', onTouchEnd)
                     window.removeEventListener('touchcancel', onTouchEnd)
                     key.classList.remove('rotateLeft', 'rotateRight', 'pressed')
+
+                    // If no rotation occurred, treat as a tap/click
+                    const endTouch = endEvent.changedTouches[0]
+                    const totalMovement = endTouch ? Math.abs(endTouch.clientX - startX) : 0
+                    if (!didRotate && totalMovement < stepSize) {
+                        sendKeyPress(i, 'down')
+                        sendKeyPress(i, 'up')
+                    }
                 }
 
                 window.addEventListener('touchmove', onTouchMove, { passive: false })
@@ -1204,14 +1227,18 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         key.addEventListener('touchend', (e: TouchEvent) => {
             e.preventDefault()
             key.classList.remove('pressed') // Remove visual feedback
-            activeKeys.delete(i)
-            sendKeyPress(i, 'up')
+            if (!isEncoder) {
+                activeKeys.delete(i)
+                sendKeyPress(i, 'up')
+            }
         }, { passive: false })
 
         key.addEventListener('touchcancel', () => {
             key.classList.remove('pressed') // Remove visual feedback
-            activeKeys.delete(i)
-            sendKeyPress(i, 'up')
+            if (!isEncoder) {
+                activeKeys.delete(i)
+                sendKeyPress(i, 'up')
+            }
         })
 
         // Add context menu again
