@@ -1,4 +1,4 @@
-// https://github.com/bitfocus/companion-satellite/blob/v2.4.0/satellite/src/clientImplementations.ts
+// https://github.com/bitfocus/companion-satellite/blob/v2.6.0/satellite/src/clientImplementations.ts
 import { Socket } from 'node:net'
 import { WebSocket } from 'ws'
 

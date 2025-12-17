@@ -1,3 +1,6 @@
+// https://github.com/bitfocus/companion-satellite/blob/v2.6.0/satellite/src/*.ts
+// took from multiple type definition files and combined here for easier reference
+
 export interface DeviceRegisterInputVariable {
     id: string
     type: 'input'
