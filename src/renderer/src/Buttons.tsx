@@ -1076,6 +1076,47 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     }
 
     /**
+     * Triggers a visual "tick" feedback for encoder steps.
+     * Animates box-shadow and scale to provide tactile, obvious feedback.
+     * Use composite: 'add' to ensure we don't overwrite the rotation transform.
+     * @param {HTMLElement} key - The key element.
+     */
+    function triggerEncoderTick(key: HTMLElement) {
+        // Cancel existing tick animations to prevent "composite: add" stacking issues
+        // which could cause extreme scaling/glitches during rapid rotation
+        key.getAnimations().forEach(anim => {
+            if (anim.id === 'encoder-tick') anim.cancel();
+        });
+
+        key.animate([
+            {
+                transform: 'scale(1)',
+                boxShadow: 'inset 0 0 5px rgba(255, 165, 0, 0.5)',
+                outlineColor: '#ffa500',
+                outlineWidth: '2px'
+            },
+            {
+                transform: 'scale(0.9)', // Tactile "shrink" on tick
+                boxShadow: 'inset 0 0 20px rgba(255, 255, 255, 0.9), 0 0 15px rgba(255, 165, 0, 0.6)', // Bright flash
+                outlineColor: '#ffffff',
+                outlineWidth: '4px', // Pulse width
+                offset: 0.4
+            },
+            {
+                transform: 'scale(1)',
+                boxShadow: 'inset 0 0 5px rgba(255, 165, 0, 0.5)',
+                outlineColor: '#ffa500',
+                outlineWidth: '2px'
+            }
+        ], {
+            id: 'encoder-tick',
+            duration: 200,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', // Snappy bounce-back
+            composite: 'add' // IMPORTANT: Mix with existing rotation transform
+        });
+    }
+
+    /**
      * Binds mouse and touch events (mousedown, mouseup, touchstart, touchend, contextmenu) to a key element.
      * Handles encoder rotation simulation and standard button presses.
      * @param {HTMLElement} key - The key DOM element.
@@ -1110,6 +1151,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                         didRotate = true
                         direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
                         sendKeyPress(i, direction)
+                        triggerEncoderTick(key) // Visual feedback for step
 
                         if (accumulatedDeltaX > 0) {
                             accumulatedDeltaX -= stepSize
@@ -1182,6 +1224,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                         direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
                         sendKeyPress(i, direction)
                         triggerHapticFeedback(5) // Lighter feedback for encoder steps
+                        triggerEncoderTick(key) // Visual feedback for step
 
                         if (accumulatedDeltaX > 0) {
                             accumulatedDeltaX -= stepSize
@@ -1607,7 +1650,6 @@ function LegacyButtons() {
     const [viewportSize, setViewportSize] = React.useState<{ width: number; height: number } | null>(null);
 
     // initialization effect
-    // TODO: stagger animation on init keys
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search)
         const deviceId = urlParams.get('deviceId')

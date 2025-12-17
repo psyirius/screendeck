@@ -26,6 +26,7 @@
 - [ ] key rendering optimizations. (commit: 1f067314e2705e8e38363bb1aa548c4edfd18147)
   - introduced some glitches at the edges of the keys.
 - add more controls. (use surface devices from satellite repo)
+- OLED like filter for the key canvas.
 - in mobile web:
   - prevent screen dimming/sleeping while in use.
   - aware of minimize and backgrounding.
