@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import Store from 'electron-store'
-import ShortUniqueId from 'short-uuid'
+import ShortUuid from 'short-uuid'
 import { defaultSettings } from './defaults'
 import * as path from 'node:path'
 import {
@@ -173,8 +173,7 @@ export function createSatellite() {
 // ===========================
 
 function generateProfileId() {
-    const uuidGenerator = ShortUniqueId()
-    return `profile-${uuidGenerator.new()}`
+    return `profile-${ShortUuid.generate()}`
 }
 
 export function promptForProfileName(): Promise<string | undefined> {

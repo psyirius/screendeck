@@ -1,7 +1,7 @@
 import Store from 'electron-store'
 import { BrowserWindow, screen } from 'electron'
 import * as path from 'path'
-import ShortUniqueId from 'short-uuid'
+import ShortUuid from 'short-uuid'
 import { defaultSettings, SettingsType } from './defaults'
 import { showDevTools } from './utils'
 import { updateTrayMenu } from './tray'
@@ -243,8 +243,7 @@ export function createNewDevice(): string {
 
 // Generate a new unique deviceId
 function generateDeviceId(): string {
-    const uuidGenerator = ShortUniqueId()
-    return `screendeck-${uuidGenerator.new()}`
+    return `screendeck-${ShortUuid.generate()}`
 }
 
 // Calculate the window size based on the number of columns, rows, and bitmap size

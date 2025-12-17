@@ -127,15 +127,3 @@ export interface SurfaceProxyDrawProps {
     color?: string // hex
     text?: string
 }
-
-// ------------------------------------------------------------------------------------------------------------------ //
-
-// Utility function to ensure a value is never
-export function assertNever(value: never): never {
-    throw new Error(`Unexpected value: ${value}`)
-}
-
-// Default TCP port for Companion Satellite
-export const DEFAULT_TCP_PORT = 16622
-
-export const DEFAULT_BASE_RESOLUTION = 72

@@ -7,6 +7,7 @@
 - [ ] Support for different screen resolutions
 - [ ] Support for different DPI settings
 - [ ] Support for different screen orientations (landscape/portrait)
+- [ ] Satellite Style Connecting Graphics on Keys.
 
 ## GitHub issues
 - [ ] Show ScreenDeck on startup
@@ -30,5 +31,6 @@
 - add support for custom protocols (eg. myapp://)
 - add more themes/faceplates
 
+## IMPL
 - https://github.com/bitfocus/companion-satellite/blob/main/satellite/src/rest.ts
 - https://github.com/bitfocus/companion-satellite/blob/main/satellite/src/mdnsAnnouncer.ts

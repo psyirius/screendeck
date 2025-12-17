@@ -1,6 +1,6 @@
 {
-    "name": "screendeck",
-    "version": "2.0.0",
+    "name": "@screendeck/desktop",
+    "version": "3.0.0",
     "author": "Joseph Adams <joseph@josephadams.dev>",
     "description": "ScreenDeck is a virtual on-screen stream deck for Bitfocus Companion.",
     "main": "./out/main/index.js",
@@ -23,6 +23,9 @@
     "// ----- COMMENTS ----- //": {
         "electron-store": "versions >=9.0.0 went pure ESM which is not compatible with CommonJS used in Electron main process."
     },
+    "// ----- TODO ----- //": {
+        "app": "migrate this app to esm"
+    },
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",
@@ -30,7 +33,7 @@
         "electron-store": "^8.0.0",
         "electron-updater": "^6.3.9",
         "semver": "^7.7.2",
-        "short-uuid": "^5.2.0",
+        "short-uuid": "^6.0.3",
         "ws": "^8.18.2"
     },
     "devDependencies": {
@@ -65,7 +68,7 @@
         "eslint": "^9.39.1",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^7.0.1",
-        "eslint-plugin-react-refresh": "^0.4.24",
+        "eslint-plugin-react-refresh": "^0.4.26",
         "fastify": "^5.6.2",
         "fastify-socket.io": "^5.1.0",
         "globals": "^16.5.0",
@@ -80,8 +83,8 @@
         "tailwindcss": "^4.1.18",
         "tw-animate-css": "^1.4.0",
         "typescript": "~5.9.3",
-        "typescript-eslint": "^8.46.4",
-        "vite": "^7.2.6"
+        "typescript-eslint": "^8.50.0",
+        "vite": "^7.3.0"
     },
     "pnpm": {
         "onlyBuiltDependencies": [

@@ -7,12 +7,15 @@ import { getNextProfileName } from './utils'
 import { is } from '@electron-toolkit/utils'
 import * as path from 'path'
 import {
-    createDevice, deleteDevice,
+    createDevice,
+    deleteDevice,
     deviceInit,
     emitKeyAction,
     getAllDevices,
     getDeviceConfig,
-    getKeyConfig, getSettings, saveConnectionSettings,
+    getKeyConfig,
+    getSettings,
+    saveConnectionSettings,
     toggleKeyIsEncoder,
     updateDeviceConfig,
     updateKeyConfig,
@@ -66,6 +69,71 @@ export async function initializeWebApi() {
         root: path.join(__dirname, '../renderer'),
         prefix: '/',
     })
+
+    // REST API endpoints
+    {
+        fastify.get('/api/host', function (_request, reply) {
+            reply.send(getSettings()['companionIP'])
+        })
+
+        fastify.post('/api/host', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.get('/api/port', function (_request, reply) {
+            reply.send(getSettings()['companionPort'])
+        })
+
+        fastify.post('/api/port', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.get('/api/connected', function (_request, reply) {
+            reply.send(globalContext.satelliteClient?.connected || false)
+        })
+
+        fastify.get('/api/config', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.post('/api/config', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.get('/api/status', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.get('/api/surfaces', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.post('/api/surfaces/rescan', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.get('/api/surfaces/plugins/installed', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.get('/api/surfaces/plugins/enabled', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+
+        fastify.post('/api/surfaces/plugins/enabled', function (_request, reply) {
+            // TODO:
+            reply.send({})
+        })
+    }
 
     const SOCKET_PORT = 3001
 

@@ -7,9 +7,10 @@ import { createDeviceWindows } from './device'
 import { loadHotkeysFromStore } from './hotkeys'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { globalContext } from './global'
+import { MdnsAnnouncer } from './mdns-announcer'
 
 // Initialize the Companion Satellite client and device windows
-function init() {
+async function _init() {
     globalContext.satelliteClient = null
     globalContext.deviceWindows = new Map()
     globalContext.keyStates = new Map()
@@ -26,15 +27,19 @@ function init() {
         transparent: true,
         skipTaskbar: true,
     })
+    globalContext.mdnsAnnouncer = new MdnsAnnouncer()
 
     initializeDeviceIds() //ensure at least one deviceId exists
     initializeIpcHandlers() // Set up IPC handlers
     createDeviceWindows() // Create device windows
     createSatellite() // Initialize the Companion Satellite client
     loadHotkeysFromStore() // Load hotkeys from the store
+
+    globalContext.webServer = await initializeWebApi() // Initialize Socket.IO server
+    globalContext.mdnsAnnouncer.start() // Start mDNS announcer
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     // Set app user model id for windows
     electronApp.setAppUserModelId('com.josephadams.screendeck')
 
@@ -49,8 +54,7 @@ app.whenReady().then(() => {
         optimizer.watchWindowShortcuts(window)
     })
 
-    init() // Initialize the app, IPC handlers, and device windows
-    initializeWebApi() // Initialize Socket.IO server
+    await _init() // Initialize the app, IPC handlers, and device windows
     createTray() // Create the system tray icon
 
     app.on('activate', () => {

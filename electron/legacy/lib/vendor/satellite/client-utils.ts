@@ -1,5 +1,9 @@
 import { GridSize, SatelliteConfigSize, SatelliteSurfaceLayout } from './client-types'
 
+export function assertNever(_v: never): void {
+    // Nothing to do
+}
+
 export function calculateGridSize(surfaceLayout: SatelliteSurfaceLayout): GridSize {
     return Object.values(surfaceLayout.controls).reduce(
         (gridSize, control): GridSize => ({

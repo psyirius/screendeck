@@ -6,8 +6,6 @@ import {
     SurfaceProxyDrawProps,
     SatelliteControlDefinition,
     DeviceRegisterPropsComplete,
-    assertNever,
-    DEFAULT_TCP_PORT,
 } from './client-types'
 import * as semver from 'semver'
 import {
@@ -18,6 +16,8 @@ import {
     ICompanionSatelliteClientOptions,
     SomeConnectionDetails,
 } from './client-implementations'
+import { DEFAULT_TCP_PORT } from './client-config'
+import { assertNever } from './client-utils'
 
 const PING_UNACKED_LIMIT = 15 // Arbitrary number
 const PING_IDLE_TIMEOUT = 1000 // Pings are allowed to be late if another packet has been received recently
