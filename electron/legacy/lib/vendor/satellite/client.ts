@@ -372,7 +372,7 @@ export class CompanionSatelliteClient
                 this.socket?.write(`PONG ${body}\n`)
                 break
             case 'PONG':
-                // console.log('Got pong')
+                // this.emit('log','Got pong')
                 this._pingUnackedCount = 0
                 break
             case 'KEY-STATE':
@@ -394,10 +394,10 @@ export class CompanionSatelliteClient
                 this.handleAddedDevice(params)
                 break
             case 'REMOVE-DEVICE':
-                console.log(`Removed device: ${body}`)
+                this.emit('log', `Removed device: ${body}`)
                 break
             case 'BEGIN':
-                console.log(`Connected to Companion: ${body}`)
+                this.emit('log', `Connected to Companion: ${body}`)
                 this.handleBegin(params)
                 break
             case 'KEY-PRESS':
@@ -407,7 +407,7 @@ export class CompanionSatelliteClient
                 // Ignore
                 break
             default:
-                console.log(`Received unhandled command: ${cmd} ${body}`)
+                this.emit('log', `Received unhandled command: ${cmd} ${body}`)
                 break
         }
     }
@@ -422,7 +422,8 @@ export class CompanionSatelliteClient
             !this._companionApiVersion ||
             semver.lt(this._companionApiVersion, MINIMUM_PROTOCOL_VERSION)
         if (this._companionUnsupported) {
-            console.log(
+            this.emit(
+                'log',
                 `Connected to unsupported Companion version. Companion ${this._companionVersion}, API ${this._companionApiVersion}`
             )
             this.socket?.end()
@@ -432,11 +433,11 @@ export class CompanionSatelliteClient
         // Perform api version checks
         if (this._companionApiVersion && semver.lte('1.8.0', this._companionApiVersion)) {
             this._supportsLocalLockState = true
-            console.log('Companion supports delegating locking drawing')
+            this.emit('log', 'Companion supports delegating locking drawing')
         }
         if (this._companionApiVersion && semver.lte('1.9.0', this._companionApiVersion)) {
             this._supportsSurfaceManifest = true
-            console.log('Companion supports surface manifest')
+            this.emit('log', 'Companion supports surface manifest')
         }
 
         // report the connection as ready
@@ -447,7 +448,7 @@ export class CompanionSatelliteClient
 
     private handleState(params: Record<string, string | boolean>): void {
         if (typeof params.DEVICEID !== 'string') {
-            console.log('Missing DEVICEID in KEY-STATE response')
+            this.emit('log', 'Missing DEVICEID in KEY-STATE response')
             return
         }
 
@@ -458,13 +459,13 @@ export class CompanionSatelliteClient
         } else if (typeof params.KEY === 'string') {
             keyIndex = parseInt(params.KEY)
             if (isNaN(keyIndex)) {
-                console.log('Bad KEY in KEY-STATE response')
+                this.emit('log', 'Bad KEY in KEY-STATE response')
                 return
             }
         }
 
         if (keyIndex === undefined && controlId === undefined) {
-            console.log('Missing KEY and CONTROLID in KEY-STATE response')
+            this.emit('log', 'Missing KEY and CONTROLID in KEY-STATE response')
             return
         }
 
@@ -480,7 +481,7 @@ export class CompanionSatelliteClient
     }
     private handleClear(params: Record<string, string | boolean>): void {
         if (typeof params.DEVICEID !== 'string') {
-            console.log('Mising DEVICEID in KEYS-CLEAR response')
+            this.emit('log', 'Mising DEVICEID in KEYS-CLEAR response')
             return
         }
 
@@ -488,15 +489,15 @@ export class CompanionSatelliteClient
     }
     private handleVariableValue(params: Record<string, string | boolean>) {
         if (typeof params.DEVICEID !== 'string') {
-            console.log('Mising DEVICEID in VARIABLE-VALUE response')
+            this.emit('log', 'Mising DEVICEID in VARIABLE-VALUE response')
             return
         }
         if (typeof params.VARIABLE !== 'string') {
-            console.log('Missing VARIABLE in VARIABLE-VALUE response')
+            this.emit('log', 'Missing VARIABLE in VARIABLE-VALUE response')
             return
         }
         if (typeof params.VALUE !== 'string') {
-            console.log('Missing VALUE in VARIABLE-VALUE response')
+            this.emit('log', 'Missing VALUE in VARIABLE-VALUE response')
             return
         }
 
@@ -509,15 +510,15 @@ export class CompanionSatelliteClient
 
     private handleLockedState(params: Record<string, string | boolean>) {
         if (typeof params.DEVICEID !== 'string') {
-            console.log('Mising DEVICEID in LOCKED-STATE response')
+            this.emit('log', 'Mising DEVICEID in LOCKED-STATE response')
             return
         }
         if (typeof params.LOCKED !== 'string') {
-            console.log('Missing LOCKED in LOCKED-STATE response')
+            this.emit('log', 'Missing LOCKED in LOCKED-STATE response')
             return
         }
         if (typeof params.CHARACTER_COUNT !== 'string') {
-            console.log('Missing CHARACTER_COUNT in LOCKED-STATE response')
+            this.emit('log', 'Missing CHARACTER_COUNT in LOCKED-STATE response')
             return
         }
 
@@ -530,16 +531,16 @@ export class CompanionSatelliteClient
 
     private handleBrightness(params: Record<string, string | boolean>): void {
         if (typeof params.DEVICEID !== 'string') {
-            console.log('Missing DEVICEID in BRIGHTNESS response')
+            this.emit('log', 'Missing DEVICEID in BRIGHTNESS response')
             return
         }
         if (typeof params.VALUE !== 'string') {
-            console.log('Missing VALUE in BRIGHTNESS response')
+            this.emit('log', 'Missing VALUE in BRIGHTNESS response')
             return
         }
         const percent = parseInt(params.VALUE)
         if (isNaN(percent)) {
-            console.log('Bad VALUE in BRIGHTNESS response')
+            this.emit('log', 'Bad VALUE in BRIGHTNESS response')
             return
         }
         this.emit('brightness', { deviceId: params.DEVICEID, percent })
@@ -547,7 +548,7 @@ export class CompanionSatelliteClient
 
     private handleAddedDevice(params: Record<string, string | boolean>): void {
         if (!params.OK || params.ERROR) {
-            console.log(`Add device failed: ${JSON.stringify(params)}`)
+            this.emit('log', `Add device failed: ${JSON.stringify(params)}`)
             if (typeof params.DEVICEID === 'string') {
                 this.emit('deviceErrored', {
                     deviceId: params.DEVICEID,
@@ -557,7 +558,7 @@ export class CompanionSatelliteClient
             return
         }
         if (typeof params.DEVICEID !== 'string') {
-            console.log('Missing DEVICEID in ADD-DEVICE response')
+            this.emit('log', 'Missing DEVICEID in ADD-DEVICE response')
             return
         }
 
