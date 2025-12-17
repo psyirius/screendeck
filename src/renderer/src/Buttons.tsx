@@ -90,6 +90,15 @@ const styles = `
         -webkit-tap-highlight-color: transparent;
     }
 
+    /* Canvas sizing within keys */
+    .key canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: inherit;
+    }
+
     .key:hover {
         background-color: #555;
     }
@@ -620,6 +629,17 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             }
         >
     >() // deviceId -> Map(keyIndex -> { bitmap, text, color, etc. })
+
+    // Render cache for optimized bitmap rendering
+    // Stores canvas context, pre-allocated ImageData, and last bitmap hash per key
+    type KeyRenderCache = {
+        canvas: HTMLCanvasElement
+        ctx: CanvasRenderingContext2D
+        imageData: ImageData | null
+        lastBitmapHash: number // Simple hash for dirty checking
+        lastSize: number
+    }
+    const keyRenderCache = new Map<number, KeyRenderCache>()
 
     // Request config from main process
     // using deviceInit instead of getDeviceConfig to trigger re-add the device to satellite
@@ -1357,52 +1377,110 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         keypad.style.opacity = String(brightness / 100)
     }
 
-    // Bitmap Rendering: Accepts base64-encoded raw RGB bitmap
+    /**
+     * Computes a fast hash of bitmap data for dirty checking.
+     * Uses a simple rolling hash sampling bytes at intervals for speed.
+     * @param {Uint8Array} bytes - The bitmap byte array.
+     * @returns {number} A 32-bit hash value.
+     */
+    function computeBitmapHash(bytes: Uint8Array): number {
+        let hash = 0
+        const len = bytes.length
+        // Sample every 64th byte for speed, plus first/last bytes
+        const step = Math.max(1, Math.floor(len / 256))
+        for (let i = 0; i < len; i += step) {
+            hash = ((hash << 5) - hash + bytes[i]) | 0
+        }
+        // Include length and last byte for better uniqueness
+        hash = ((hash << 5) - hash + len) | 0
+        if (len > 0) {
+            hash = ((hash << 5) - hash + bytes[len - 1]) | 0
+        }
+        return hash
+    }
+
     /**
      * Renders a raw RGB bitmap onto a canvas within the key element.
+     * Optimized with:
+     * - Cached canvas context per key
+     * - Pre-allocated ImageData reuse when size matches
+     * - Dirty checking to skip unchanged bitmaps
      * @param {HTMLElement} container - The key element container.
-     * @param {Uint8Array | ArrayBuffer} bitmap - Base64 encoded raw RGB bitmap data.
+     * @param {Uint8Array | ArrayBuffer} bitmap - Raw RGB bitmap data.
      * @param {number} keyIndex - The index of the key.
      */
-    function renderBitmap(container, bitmap, keyIndex) {
-        requestAnimationFrame(() => {
-            console.log('Rendering bitmap for key', keyIndex)
-            try {
-                const bytes = new Uint8Array(bitmap)
+    function renderBitmap(container: HTMLElement, bitmap: Uint8Array | ArrayBuffer, keyIndex: number) {
+        const bytes = new Uint8Array(bitmap)
+        const size = Math.sqrt(bytes.length / 3)
 
-                const size = Math.sqrt(bytes.length / 3)
-                if (!Number.isInteger(size)) {
-                    console.warn('Bitmap data length does not result in a perfect square.')
-                    return
-                }
+        if (!Number.isInteger(size)) {
+            console.warn('Bitmap data length does not result in a perfect square.')
+            return
+        }
 
-                let canvas = container.querySelector('canvas')
-                if (!canvas) {
-                    canvas = document.createElement('canvas')
-                    container.innerHTML = ''
-                    container.appendChild(canvas)
-                }
+        // Compute hash for dirty checking
+        const bitmapHash = computeBitmapHash(bytes)
 
+        // Check cache for this key
+        let cache = keyRenderCache.get(keyIndex)
+
+        // Skip render if bitmap hasn't changed
+        if (cache && cache.lastBitmapHash === bitmapHash && cache.lastSize === size) {
+            return // Bitmap unchanged, skip render
+        }
+
+        // Get or create cached canvas and context
+        if (!cache || cache.lastSize !== size) {
+            let canvas = container.querySelector('canvas') as HTMLCanvasElement | null
+            if (!canvas) {
+                canvas = document.createElement('canvas')
+                container.innerHTML = ''
+                container.appendChild(canvas)
+            }
+
+            // Only update canvas dimensions if size changed
+            if (canvas.width !== size || canvas.height !== size) {
                 canvas.width = size
                 canvas.height = size
-                const ctx = canvas.getContext('2d')
-                const imageData = ctx.createImageData(size, size)
-
-                for (let i = 0, j = 0; i < bytes.length; i += 3, j += 4) {
-                    imageData.data[j] = bytes[i]
-                    imageData.data[j + 1] = bytes[i + 1]
-                    imageData.data[j + 2] = bytes[i + 2]
-                    imageData.data[j + 3] = 255
-                }
-
-                ctx.putImageData(imageData, 0, 0)
-
-                // Optional: Convert the canvas into a PNG base64 (for other uses)
-                // const dataUrl = canvas.toDataURL('image/png')
-            } catch (err) {
-                console.error('Error decoding bitmap:', err)
             }
+
+            const ctx = canvas.getContext('2d', {
+                alpha: false,  // Disable alpha for better performance
+                desynchronized: true  // Reduce latency on supported browsers
+            })!
+
+            // Pre-allocate ImageData
+            const imageData = ctx.createImageData(size, size)
+
+            cache = {
+                canvas,
+                ctx,
+                imageData,
+                lastBitmapHash: 0,
+                lastSize: size
+            }
+            keyRenderCache.set(keyIndex, cache)
+        }
+
+        // Use pre-allocated ImageData
+        const imageData = cache.imageData!
+        const data = imageData.data
+
+        // Convert RGB to RGBA using typed array operations
+        for (let i = 0, j = 0; i < bytes.length; i += 3, j += 4) {
+            data[j] = bytes[i]         // R
+            data[j + 1] = bytes[i + 1] // G
+            data[j + 2] = bytes[i + 2] // B
+            data[j + 3] = 255          // A
+        }
+
+        // Render using requestAnimationFrame for optimal timing
+        requestAnimationFrame(() => {
+            cache!.ctx.putImageData(imageData, 0, 0)
         })
+
+        // Update cache hash
+        cache.lastBitmapHash = bitmapHash
     }
 
     window.addEventListener('mouseup', () => {
