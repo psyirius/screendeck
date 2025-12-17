@@ -1,4 +1,4 @@
-import type { CompanionSatelliteClient } from './client'
+import type { CompanionSatelliteClient } from './lib/vendor/satellite/client'
 
 export const globalContext = {
     satelliteClient: null as CompanionSatelliteClient | null,

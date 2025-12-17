@@ -1,3 +1,4 @@
+// https://github.com/bitfocus/companion-satellite/blob/v2.3.0/satellite/src/client.ts
 import { EventEmitter } from 'events'
 import {
     ClientCapabilities,
@@ -16,10 +17,6 @@ import {
     ICompanionSatelliteClientOptions,
     SomeConnectionDetails,
 } from './client-implementations'
-
-/**
- * This implementation is derived from the companion-satellite project
- */
 
 const PING_UNACKED_LIMIT = 15 // Arbitrary number
 const PING_IDLE_TIMEOUT = 1000 // Pings are allowed to be late if another packet has been received recently
@@ -233,9 +230,7 @@ export class CompanionSatelliteClient
                             this.emit('log', 'Trying reconnect')
                             this.initSocket()
                         },
-                        this._companionUnsupported
-                            ? RECONNECT_DELAY_UNSUPPORTED
-                            : RECONNECT_DELAY
+                        this._companionUnsupported ? RECONNECT_DELAY_UNSUPPORTED : RECONNECT_DELAY
                     )
                 }
             },
@@ -253,10 +248,7 @@ export class CompanionSatelliteClient
                 this.receiveBuffer = ''
 
                 if (!this._pingInterval) {
-                    this._pingInterval = setInterval(
-                        () => this.sendPing(),
-                        PING_INTERVAL
-                    )
+                    this._pingInterval = setInterval(() => this.sendPing(), PING_INTERVAL)
                 }
 
                 if (!this.socket) {
@@ -272,16 +264,10 @@ export class CompanionSatelliteClient
         let socket: ICompanionSatelliteClient
         switch (this._connectionDetails.mode) {
             case 'tcp':
-                socket = new CompanionSatelliteTcpClient(
-                    socketOptions,
-                    this._connectionDetails
-                )
+                socket = new CompanionSatelliteTcpClient(socketOptions, this._connectionDetails)
                 break
             case 'ws':
-                socket = new CompanionSatelliteWsClient(
-                    socketOptions,
-                    this._connectionDetails
-                )
+                socket = new CompanionSatelliteWsClient(socketOptions, this._connectionDetails)
                 break
             default:
                 assertNever(this._connectionDetails)
@@ -290,10 +276,7 @@ export class CompanionSatelliteClient
         }
         this.socket = socket
 
-        this.emit(
-            'log',
-            `Connecting to ${formatConnectionUrl(this._connectionDetails)}`
-        )
+        this.emit('log', `Connecting to ${formatConnectionUrl(this._connectionDetails)}`)
     }
 
     private sendPing(): void {
@@ -334,7 +317,6 @@ export class CompanionSatelliteClient
 
     public disconnect(): void {
         this._connectionActive = false
-
         if (this._retryConnectTimeout) {
             clearTimeout(this._retryConnectTimeout)
             delete this._retryConnectTimeout
@@ -350,17 +332,12 @@ export class CompanionSatelliteClient
         }
 
         try {
-            if (this.socket) {
-                this.socket.end()
-                this.socket.destroy()
-                this.socket = undefined
-            }
-        } catch (e) {
-            console.error('Error while disconnecting socket:', e)
+            this.socket?.end()
             this.socket = undefined
+        } catch (e) {
+            this.socket = undefined
+            throw e
         }
-
-        this._connected = false
     }
 
     private _handleReceivedData(data: string): void {
@@ -432,11 +409,8 @@ export class CompanionSatelliteClient
 
     private handleBegin(params: Record<string, string | boolean>): void {
         this._companionVersion =
-            typeof params.CompanionVersion === 'string'
-                ? params.CompanionVersion
-                : null
-        this._companionApiVersion =
-            typeof params.ApiVersion === 'string' ? params.ApiVersion : null
+            typeof params.CompanionVersion === 'string' ? params.CompanionVersion : null
+        this._companionApiVersion = typeof params.ApiVersion === 'string' ? params.ApiVersion : null
 
         // Check if the companion is supported
         this._companionUnsupported =
@@ -457,10 +431,7 @@ export class CompanionSatelliteClient
         // 		this._supportsCombinedEncoders = true
         // 		console.log('Companion supports combined encoders')
         // 	}
-        if (
-            this._companionApiVersion &&
-            semver.lte('1.8.0', this._companionApiVersion)
-        ) {
+        if (this._companionApiVersion && semver.lte('1.8.0', this._companionApiVersion)) {
             this._supportsLocalLockState = true
             console.log('Companion supports delegating locking drawing')
         }
@@ -489,23 +460,14 @@ export class CompanionSatelliteClient
         }
 
         const image =
-            typeof params.BITMAP === 'string'
-                ? Buffer.from(params.BITMAP, 'base64')
-                : undefined
+            typeof params.BITMAP === 'string' ? Buffer.from(params.BITMAP, 'base64') : undefined
         const text =
             typeof params.TEXT === 'string'
                 ? Buffer.from(params.TEXT, 'base64').toString()
                 : undefined
-        const color =
-            typeof params.COLOR === 'string' ? params.COLOR : undefined
+        const color = typeof params.COLOR === 'string' ? params.COLOR : undefined
 
-        this.emit('draw', {
-            deviceId: params.DEVICEID,
-            keyIndex,
-            image,
-            text,
-            color,
-        })
+        this.emit('draw', { deviceId: params.DEVICEID, keyIndex, image, text, color })
     }
     private handleClear(params: Record<string, string | boolean>): void {
         if (typeof params.DEVICEID !== 'string') {
@@ -616,7 +578,7 @@ export class CompanionSatelliteClient
         if (this._connected && this.socket) {
             this.sendMessage('KEY-ROTATE', null, deviceId, {
                 KEY: `${y}/${x}`,
-                DIRECTION: -1,
+                DIRECTION: false,
             })
         }
     }
@@ -624,7 +586,7 @@ export class CompanionSatelliteClient
         if (this._connected && this.socket) {
             this.sendMessage('KEY-ROTATE', null, deviceId, {
                 KEY: `${y}/${x}`,
-                DIRECTION: 1,
+                DIRECTION: true,
             })
         }
     }
@@ -635,11 +597,7 @@ export class CompanionSatelliteClient
             })
         }
     }
-    public sendVariableValue(
-        deviceId: string,
-        variable: string,
-        value: string
-    ): void {
+    public sendVariableValue(deviceId: string, variable: string, value: string): void {
         if (this._connected && this.socket) {
             this.sendMessage('SET-VARIABLE-VALUE', null, deviceId, {
                 VARIABLE: variable,
@@ -648,11 +606,11 @@ export class CompanionSatelliteClient
         }
     }
 
-    public addDevice(
-        deviceId: string,
-        productName: string,
-        props: DeviceRegisterProps
-    ): void {
+    public hasDevice(deviceId: string): boolean {
+        return this._registeredDevices.has(deviceId) || this._pendingDevices.has(deviceId)
+    }
+
+    public addDevice(deviceId: string, productName: string, props: DeviceRegisterProps): void {
         if (this._registeredDevices.has(deviceId)) {
             throw new Error('Device is already registered')
         }

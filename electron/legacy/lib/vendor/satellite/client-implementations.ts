@@ -1,3 +1,4 @@
+// https://github.com/bitfocus/companion-satellite/blob/v2.3.0/satellite/src/clientImplementations.ts
 import { Socket } from 'node:net'
 import { WebSocket } from 'ws'
 
@@ -35,10 +36,7 @@ export type SomeConnectionDetails = TcpConnectionDetails | WsConnectionDetails
 export class CompanionSatelliteTcpClient implements ICompanionSatelliteClient {
     #socket: Socket
 
-    constructor(
-        options: ICompanionSatelliteClientOptions,
-        details: TcpConnectionDetails
-    ) {
+    constructor(options: ICompanionSatelliteClientOptions, details: TcpConnectionDetails) {
         this.#socket = new Socket()
 
         this.#socket.on('error', (err) => options.onError(err))
@@ -63,20 +61,15 @@ export class CompanionSatelliteTcpClient implements ICompanionSatelliteClient {
 export class CompanionSatelliteWsClient implements ICompanionSatelliteClient {
     #socket: WebSocket
 
-    constructor(
-        options: ICompanionSatelliteClientOptions,
-        details: WsConnectionDetails
-    ) {
+    constructor(options: ICompanionSatelliteClientOptions, details: WsConnectionDetails) {
         this.#socket = new WebSocket(details.url, {
             timeout: 5000,
         })
 
-        this.#socket.on('error', (err: any) => options.onError(err))
+        this.#socket.on('error', (err) => options.onError(err))
         this.#socket.on('close', () => options.onClose())
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        this.#socket.on('message', (data: Buffer) =>
-            options.onData(data.toString())
-        )
+        this.#socket.on('message', (data) => options.onData(data.toString()))
         this.#socket.on('open', () => options.onConnect())
     }
 

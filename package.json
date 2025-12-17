@@ -26,6 +26,7 @@
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",
+        "@julusian/bonjour-service": "^1.4.2",
         "electron-store": "^8.0.0",
         "electron-updater": "^6.3.9",
         "semver": "^7.7.2",
@@ -56,6 +57,8 @@
         "classnames": "^2.5.1",
         "clsx": "^2.1.1",
         "commander": "^14.0.2",
+        "conf": "^15.0.2",
+        "debounce-fn": "^6.0.0",
         "electron": "^39.2.7",
         "electron-builder": "^25.1.8",
         "electron-vite": "^5.0.0",

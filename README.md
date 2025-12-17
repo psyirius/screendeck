@@ -6,6 +6,8 @@ ScreenDeck is a virtual on-screen stream deck for Bitfocus Companion, built with
 
 [![Watch the demo on YouTube](https://img.youtube.com/vi/QIi7PxsPd34/0.jpg)](https://youtu.be/QIi7PxsPd34)
 
+[//]: # (https://github.com/bitfocus/companion-satellite)
+
 ## Features
 
 ✅ **Multi-Deck Support**: Create as many decks as you need, each with independent layouts and settings.
@@ -118,5 +120,5 @@ For any questions or support, feel free to reach out through GitHub Issues.
 
 ## About the Author
 
-Made with 💻 and ☕ by [Joseph Adams](https://josephadams.dev)  
+Made with 💻 and ☕ by [Joseph Adams](https://josephadams.dev)
 Visit [josephadams.dev](https://josephadams.dev) to learn more about my work and to inquire about custom app development for your team or organization.

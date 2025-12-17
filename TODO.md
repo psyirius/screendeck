@@ -29,3 +29,6 @@
 - add multi-touch gestures support
 - add support for custom protocols (eg. myapp://)
 - add more themes/faceplates
+
+- https://github.com/bitfocus/companion-satellite/blob/main/satellite/src/rest.ts
+- https://github.com/bitfocus/companion-satellite/blob/main/satellite/src/mdnsAnnouncer.ts

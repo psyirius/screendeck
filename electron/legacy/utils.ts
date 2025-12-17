@@ -4,7 +4,7 @@ import ShortUniqueId from 'short-uuid'
 import { defaultSettings } from './defaults'
 import * as path from 'node:path'
 import { createNewDevice, showWindows } from './device'
-import { CompanionSatelliteClient } from './client'
+import { CompanionSatelliteClient } from './lib/vendor/satellite/client'
 import { updateTrayMenu } from './tray'
 import { ProfilesStore } from './types'
 import { showNotification } from './notification'
@@ -30,7 +30,6 @@ export function initializeDeviceIds() {
 // ===========================
 // Companion Satellite Client
 // ===========================
-
 export function createSatellite() {
     // Create the CompanionSatelliteClient
     if (globalContext.satelliteClient?.connected) {
@@ -71,10 +70,9 @@ export function createSatellite() {
         console.log(`[Satellite] Draw event for device ${data.deviceId}`)
         console.log('[Satellite] Draw data:', data)
 
-        //save the image to global.keyStates
-        data.imageBase64 = data.image?.toString('base64') || undefined
+        const imageBase64 = data.image?.toString('base64') || undefined
 
-        //save to global.keyStates
+        // save to global.keyStates
         if (!globalContext.keyStates.has(data.deviceId)) {
             globalContext.keyStates.set(data.deviceId, new Map())
         }
@@ -83,17 +81,22 @@ export function createSatellite() {
         for (const [_hotkey, mapping] of globalContext.registeredHotkeys.entries()) {
             if (mapping.deviceId === data.deviceId && mapping.keyIndex === data.keyIndex) {
                 // Update the bitmap for this hotkey (optional redundancy)
-                mapping.imageBase64 = data.imageBase64 ?? ''
+                mapping.imageBase64 = imageBase64 ?? ''
             }
         }
 
         const deviceKeyStates = globalContext.keyStates.get(data.deviceId)
         if (deviceKeyStates) {
             deviceKeyStates.set(data.keyIndex, {
-                imageBase64: data.imageBase64,
+                imageBase64: imageBase64,
                 color: data.color,
                 text: data.text,
             })
+        }
+
+        const drawData = {
+            ...data,
+            imageBase64,
         }
 
         // Send the draw event to the corresponding device window
@@ -101,9 +104,9 @@ export function createSatellite() {
         if (win) {
             //resizeWindowForDevice(data.deviceId)
             // TODO: IPC
-            win.webContents.send('draw', data)
+            win.webContents.send('draw', drawData)
         }
-        webDeviceActions.draw(data.deviceId, data);
+        webDeviceActions.draw(data.deviceId, drawData)
     })
 
     globalContext.satelliteClient.on('clearDeck', (data) => {
