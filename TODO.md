@@ -21,7 +21,7 @@
 - [ ] Full Surface/Device Customization.
 - [ ] Bitfocus Buttons web-ui like look.
 - [ ] Physical StreamDeck like Look.
-- [ ] Fix keys rendered blank sometimes. (in mobile)
+- [ ] Fix some or all keys rendered blank sometimes.
 - [ ] Resize Deck Window on Device configuration change.
 - [ ] key rendering optimizations. (commit: 1f067314e2705e8e38363bb1aa548c4edfd18147)
   - introduced some glitches at the edges of the keys.
