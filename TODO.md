@@ -1,3 +1,10 @@
+- [ ] Rebrand
+  - Name:
+    - DeckView (domain available, .com premium)
+    - DeckMate (some taken)
+    - DeckOne (domain available, .com premium)
+    - DeckStation (domain available)
+    - ScreenDeck (mostly available, .tech taken)
 - [ ] FIX auto hide.
 - [ ] FIX hide on connect.
 - [ ] FIX restore window position on launch.
@@ -11,6 +18,9 @@
 - [ ] Orientation change handling.
 - [ ] Cached button re-drawing to minimize duplicate rendering.
 - [ ] Add Scaling options for different screen sizes.
+- [ ] Full Surface/Device Customization.
+- [ ] Bitfocus Buttons web-ui like look.
+- [ ] Tactile feedback support for Touch Screens.
 
 ## GitHub issues
 - [ ] Show ScreenDeck on startup

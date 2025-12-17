@@ -961,23 +961,33 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     }
 
     /**
-     * Binds mouse events (mousedown, mouseup, contextmenu) to a key element.
+     * Triggers haptic feedback on supported devices.
+     * Uses the Vibration API if available.
+     * @param {number} duration - Duration of vibration in milliseconds.
+     */
+    function triggerHapticFeedback(duration: number = 10) {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(duration)
+        }
+    }
+
+    /**
+     * Binds mouse and touch events (mousedown, mouseup, touchstart, touchend, contextmenu) to a key element.
      * Handles encoder rotation simulation and standard button presses.
      * @param {HTMLElement} key - The key DOM element.
      * @param {number} i - The key index.
      * @param {object} keyConfig - The configuration object for the key.
      */
     function bindKeyEvents(key, i, keyConfig) {
+        const isEncoder = keyConfig.isEncoder
+        const stepSize = keyConfig.stepSize || 10
+
+        // --- Mouse Events ---
         key.addEventListener('mousedown', (e) => {
-            console.log('in mouse down for key:', i)
+            // console.log('in mouse down for key:', i)
             if (e.button === 2) {
                 return
             }
-
-            const isEncoder = keyConfig.isEncoder
-            const stepSize = keyConfig.stepSize || 10
-
-            console.log('isEncoder:', isEncoder, 'stepSize:', stepSize)
 
             if (isEncoder) {
                 e.preventDefault()
@@ -1026,6 +1036,73 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         })
 
         key.addEventListener('mouseup', () => {
+            activeKeys.delete(i)
+            sendKeyPress(i, 'up')
+        })
+
+        // --- Touch Events ---
+        key.addEventListener('touchstart', (e: TouchEvent) => {
+            e.preventDefault() // Prevent mouse event emulation
+            triggerHapticFeedback()
+
+            if (isEncoder) {
+                const touch = e.touches[0]
+                let accumulatedDeltaX = 0
+                let lastX = touch.clientX
+
+                const onTouchMove = (moveEvent: TouchEvent) => {
+                    const moveTouch = moveEvent.touches[0]
+                    if (!moveTouch) return
+
+                    const deltaX = moveTouch.clientX - lastX
+                    accumulatedDeltaX += deltaX
+
+                    let direction: ('rotateRight' | 'rotateLeft') | null = null
+                    while (Math.abs(accumulatedDeltaX) >= stepSize) {
+                        direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
+                        sendKeyPress(i, direction)
+                        triggerHapticFeedback(5) // Lighter feedback for encoder steps
+
+                        if (accumulatedDeltaX > 0) {
+                            accumulatedDeltaX -= stepSize
+                        } else {
+                            accumulatedDeltaX += stepSize
+                        }
+                    }
+
+                    if (direction) {
+                        key.classList.add(direction)
+                        key.classList.remove(
+                            direction === 'rotateRight' ? 'rotateLeft' : 'rotateRight'
+                        )
+                    }
+
+                    lastX = moveTouch.clientX
+                }
+
+                const onTouchEnd = () => {
+                    window.removeEventListener('touchmove', onTouchMove)
+                    window.removeEventListener('touchend', onTouchEnd)
+                    window.removeEventListener('touchcancel', onTouchEnd)
+                    key.classList.remove('rotateLeft', 'rotateRight')
+                }
+
+                window.addEventListener('touchmove', onTouchMove, { passive: false })
+                window.addEventListener('touchend', onTouchEnd)
+                window.addEventListener('touchcancel', onTouchEnd)
+            } else {
+                activeKeys.add(i)
+                sendKeyPress(i, 'down')
+            }
+        }, { passive: false })
+
+        key.addEventListener('touchend', (e: TouchEvent) => {
+            e.preventDefault()
+            activeKeys.delete(i)
+            sendKeyPress(i, 'up')
+        }, { passive: false })
+
+        key.addEventListener('touchcancel', () => {
             activeKeys.delete(i)
             sendKeyPress(i, 'up')
         })
@@ -1167,7 +1244,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
      * @param {object} keyObj - The key state object.
      */
     function processKey(keyObj) {
-        console.log('Processing key:', keyObj)
+        // console.log('Processing key:', keyObj)
 
         const keypad = $elements.keypad.current!;
         const loadingMessage = $elements.loadingMessage.current!
