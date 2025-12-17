@@ -77,6 +77,8 @@ export interface HotkeyContext {
 }
 
 export interface SharedAPI {
+    is(key: string): boolean
+
     // Requests
     deviceInit(deviceId: string): Promise<DeviceConfig>
     getDeviceConfig(deviceId: string): Promise<DeviceConfig>

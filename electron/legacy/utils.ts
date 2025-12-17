@@ -11,6 +11,7 @@ import { showNotification } from './notification'
 import { unregisterAllHotkeys } from './hotkeys'
 import { is } from '@electron-toolkit/utils'
 import { globalContext } from './global'
+import { webDeviceActions } from './web-api'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -102,6 +103,7 @@ export function createSatellite() {
             // TODO: IPC
             win.webContents.send('draw', data)
         }
+        webDeviceActions.draw(data.deviceId, data);
     })
 
     globalContext.satelliteClient.on('clearDeck', (data) => {
@@ -110,6 +112,7 @@ export function createSatellite() {
             // TODO: IPC
             win.webContents.send('clearDeck')
         }
+        webDeviceActions.clearDeck(data.deviceId);
     })
 
     globalContext.satelliteClient.on('brightness', (data) => {
@@ -118,6 +121,7 @@ export function createSatellite() {
             // TODO: IPC
             win.webContents.send('brightness', data.percent)
         }
+        webDeviceActions.setBrightness(data.deviceId, data.percent);
     })
 
     globalContext.satelliteClient.on('lockedState', (data) => {
@@ -126,6 +130,7 @@ export function createSatellite() {
             // TODO: IPC
             win.webContents.send('lockedState', data)
         }
+        webDeviceActions.setLockedState(data.deviceId, data)
     })
 
     // Connect to Companion

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { hexToRgba } from './color';
 import { getAPIClient } from '@/api/client';
 import logo from '@/assets/images/logo.png?url';
-import { cn } from './lib/utils';
+// import { cn } from './lib/utils';
 
 const api = getAPIClient();
 
@@ -404,138 +404,138 @@ const InjectStyles = () => (
     <style>{styles}</style>
 )
 
-interface KeyData {
-    text?: string
-    textColor?: string
-    color?: string
-    fontSize?: number
-    imageBase64?: string
-    isEncoder?: boolean
-    stepSize?: number
-}
-
-interface KeyProps {
-    index: number
-    deviceId: string
-    data: KeyData
-    hideIfEmpty?: boolean
-    onPress: (index: number, action: string) => void
-    onContextMenu: (e: React.MouseEvent, index: number) => void
-}
-
-const Key = React.memo(({ index, deviceId, data, hideIfEmpty, onPress, onContextMenu }: KeyProps) => {
-    const canvasRef = React.useRef<HTMLCanvasElement>(null)
-    const [isPressed, setIsPressed] = React.useState(false);
-
-    function _onMouseDown(e: React.MouseEvent) {
-        if (e.button === 2) return // Ignore right click (handled by context menu)
-
-        if (!data.isEncoder) {
-            setIsPressed(true)
-        } else {
-            e.preventDefault();
-            // TODO: Implement encoder functionality
-        }
-
-        onPress(index, 'down')
-    }
-
-    function _onMouseUp(e: React.MouseEvent) {
-        if (e.button === 2) return // Ignore right click (handled by context menu)
-
-        if (!data.isEncoder) {
-            setIsPressed(false)
-        }
-
-        onPress(index, 'up')
-    }
-
-    // Bitmap Rendering Effect
-    React.useEffect(() => {
-        if (!data?.imageBase64 || !canvasRef.current) return
-
-        function renderBitmap(imageBase64: string) {
-            console.log('Rendering bitmap for key', index);
-
-            try {
-                const binary = atob(imageBase64)
-                const bytes = new Uint8Array(binary.length)
-
-                for (let i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i)
-                }
-
-                const size = Math.sqrt(bytes.length / 3)
-                if (!Number.isInteger(size)) {
-                    console.warn('Bitmap data length does not result in a perfect square.')
-                    return
-                }
-
-                const canvas = canvasRef.current!
-                canvas.width = size
-                canvas.height = size
-
-                const ctx = canvas.getContext('2d')
-                if (!ctx) {
-                    console.error('Failed to get 2D context')
-                    return
-                }
-                const imageData = ctx.createImageData(size, size)
-
-                // RGB to RGBA
-                for (let i = 0, j = 0; i < bytes.length; i += 3, j += 4) {
-                    imageData.data[j] = bytes[i] // Red
-                    imageData.data[j + 1] = bytes[i + 1] // Green
-                    imageData.data[j + 2] = bytes[i + 2] // Blue
-                    imageData.data[j + 3] = 255 // Alpha
-                }
-
-                ctx.putImageData(imageData, 0, 0)
-            } catch (error) {
-                console.error('Failed to render bitmap:', error)
-            }
-        }
-
-        requestAnimationFrame(() => renderBitmap(data.imageBase64!));
-    }, [data?.imageBase64]);
-
-    let decodedText = ''
-    if (data?.text) {
-        try {
-            decodedText = atob(data.text)
-        } catch {
-            decodedText = data.text
-        }
-    }
-
-    return (
-        <div
-            key={index}
-            className={cn("key", {
-                "encoder": data.isEncoder,
-                "rotateLeft": false,
-                "rotateRight": false
-            })}
-            data-index={index}
-            onContextMenu={(e) => onContextMenu(e, index)}
-            onMouseDown={_onMouseDown}
-            onMouseUp={_onMouseUp}
-            style={{
-                backgroundColor: data.color || '',
-                display: hideIfEmpty && !data.imageBase64 && !data.text && !data.color ? 'none' : 'flex'
-            }}
-        >
-            {/* If we have a bitmap, show canvas */}
-            {data.imageBase64 && (
-                <canvas ref={canvasRef} />
-            )}
-            {/* If we have text, show it */}
-            {/* {data.text && (
-                <span>{decodedText}</span>
-            )} */}
-        </div>
-    )
-});
+// interface KeyData {
+//     text?: string
+//     textColor?: string
+//     color?: string
+//     fontSize?: number
+//     imageBase64?: string
+//     isEncoder?: boolean
+//     stepSize?: number
+// }
+//
+// interface KeyProps {
+//     index: number
+//     deviceId: string
+//     data: KeyData
+//     hideIfEmpty?: boolean
+//     onPress: (index: number, action: string) => void
+//     onContextMenu: (e: React.MouseEvent, index: number) => void
+// }
+//
+// const Key = React.memo(({ index, deviceId, data, hideIfEmpty, onPress, onContextMenu }: KeyProps) => {
+//     const canvasRef = React.useRef<HTMLCanvasElement>(null)
+//     const [isPressed, setIsPressed] = React.useState(false);
+//
+//     function _onMouseDown(e: React.MouseEvent) {
+//         if (e.button === 2) return // Ignore right click (handled by context menu)
+//
+//         if (!data.isEncoder) {
+//             setIsPressed(true)
+//         } else {
+//             e.preventDefault();
+//             // TODO: Implement encoder functionality
+//         }
+//
+//         onPress(index, 'down')
+//     }
+//
+//     function _onMouseUp(e: React.MouseEvent) {
+//         if (e.button === 2) return // Ignore right click (handled by context menu)
+//
+//         if (!data.isEncoder) {
+//             setIsPressed(false)
+//         }
+//
+//         onPress(index, 'up')
+//     }
+//
+//     // Bitmap Rendering Effect
+//     React.useEffect(() => {
+//         if (!data?.imageBase64 || !canvasRef.current) return
+//
+//         function renderBitmap(imageBase64: string) {
+//             console.log('Rendering bitmap for key', index);
+//
+//             try {
+//                 const binary = atob(imageBase64)
+//                 const bytes = new Uint8Array(binary.length)
+//
+//                 for (let i = 0; i < binary.length; i++) {
+//                     bytes[i] = binary.charCodeAt(i)
+//                 }
+//
+//                 const size = Math.sqrt(bytes.length / 3)
+//                 if (!Number.isInteger(size)) {
+//                     console.warn('Bitmap data length does not result in a perfect square.')
+//                     return
+//                 }
+//
+//                 const canvas = canvasRef.current!
+//                 canvas.width = size
+//                 canvas.height = size
+//
+//                 const ctx = canvas.getContext('2d')
+//                 if (!ctx) {
+//                     console.error('Failed to get 2D context')
+//                     return
+//                 }
+//                 const imageData = ctx.createImageData(size, size)
+//
+//                 // RGB to RGBA
+//                 for (let i = 0, j = 0; i < bytes.length; i += 3, j += 4) {
+//                     imageData.data[j] = bytes[i] // Red
+//                     imageData.data[j + 1] = bytes[i + 1] // Green
+//                     imageData.data[j + 2] = bytes[i + 2] // Blue
+//                     imageData.data[j + 3] = 255 // Alpha
+//                 }
+//
+//                 ctx.putImageData(imageData, 0, 0)
+//             } catch (error) {
+//                 console.error('Failed to render bitmap:', error)
+//             }
+//         }
+//
+//         requestAnimationFrame(() => renderBitmap(data.imageBase64!));
+//     }, [data?.imageBase64]);
+//
+//     let decodedText = ''
+//     if (data?.text) {
+//         try {
+//             decodedText = atob(data.text)
+//         } catch {
+//             decodedText = data.text
+//         }
+//     }
+//
+//     return (
+//         <div
+//             key={index}
+//             className={cn("key", {
+//                 "encoder": data.isEncoder,
+//                 "rotateLeft": false,
+//                 "rotateRight": false
+//             })}
+//             data-index={index}
+//             onContextMenu={(e) => onContextMenu(e, index)}
+//             onMouseDown={_onMouseDown}
+//             onMouseUp={_onMouseUp}
+//             style={{
+//                 backgroundColor: data.color || '',
+//                 display: hideIfEmpty && !data.imageBase64 && !data.text && !data.color ? 'none' : 'flex'
+//             }}
+//         >
+//             {/* If we have a bitmap, show canvas */}
+//             {data.imageBase64 && (
+//                 <canvas ref={canvasRef} />
+//             )}
+//             {/* If we have text, show it */}
+//             {/* {data.text && (
+//                 <span>{decodedText}</span>
+//             )} */}
+//         </div>
+//     )
+// });
 
 function LegacyButtons() {
     type _InitOptions = {

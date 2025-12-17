@@ -37,6 +37,10 @@ export class ElectronAPIAdapter implements SharedAPI {
         return !!window[ELECTRON_API_KEY]
     }
 
+    public is(key: string): boolean {
+        return ElectronAPIAdapter.available() && key === 'electron';
+    }
+
     constructor(logger: Logger) {
         if (!ElectronAPIAdapter.available()) {
             throw new Error('Electron API is not available in this environment.')
@@ -188,6 +192,10 @@ export class ElectronAPIAdapter implements SharedAPI {
 export class SocketIOAPIAdapter implements SharedAPI {
     private socket: Socket
     private logger: Logger
+
+    public is(key: string): boolean {
+        return key === 'socketio' || key === 'web';
+    }
 
     constructor(logger: Logger) {
         this.logger = logger

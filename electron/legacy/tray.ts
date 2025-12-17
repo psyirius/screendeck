@@ -11,6 +11,7 @@ import { ProfilesStore } from './types'
 import { unregisterAllHotkeys } from './hotkeys'
 import trayIcon from '../../assets/tray-icon.png?asset'
 import { globalContext } from './global'
+import { webDeviceActions } from './web-api'
 
 let tray: Tray | null = null
 const store = new Store()
@@ -110,6 +111,7 @@ function updateTrayMenu() {
                             win.webContents.send('identify')
                             updateTrayMenu()
                         }
+                        webDeviceActions.identify(deviceId);
                     },
                 },
                 {
@@ -143,6 +145,7 @@ function updateTrayMenu() {
                             // TODO: IPC
                             win.webContents.send('disablePress', newState)
                         }
+                        webDeviceActions.setDisablePress(deviceId, newState);
 
                         updateTrayMenu()
                     },

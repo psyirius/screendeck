@@ -1,60 +1,43 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import * as path from 'path'
-import Store from 'electron-store'
-import { defaultSettings } from './defaults'
-import { createSatellite, getNextProfileName } from './utils'
+import { getNextProfileName } from './utils'
 import { updateTrayMenu } from './tray'
 import { registerHotkey, unregisterHotkey } from './hotkeys'
 import {
-    createNewDevice,
     createDeviceWindow,
     calculateWindowSize,
     showDeviceLabels,
 } from './device'
 import { is } from '@electron-toolkit/utils'
 import { globalContext } from './global'
-
-const store = new Store({ defaults: defaultSettings })
+import {
+    createDevice,
+    deleteDevice,
+    deviceInit,
+    emitKeyAction,
+    getAllDevices,
+    getDeviceConfig,
+    getKeyConfig,
+    getSettings,
+    saveConnectionSettings,
+    setDeviceHidden,
+    toggleKeyIsEncoder,
+    updateDeviceConfig,
+    updateDeviceKeyConfig,
+    updateKeyConfig,
+} from './device-actions'
 
 export function initializeIpcHandlers() {
-    const getDeviceConfig = (deviceId: string) => {
-        const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
-        const rowCount = store.get(`device.${deviceId}.rowCount`, 4)
-        const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
-        const alwaysOnTop = store.get(`device.${deviceId}.alwaysOnTop`, false)
-        const movable = store.get(`device.${deviceId}.movable`, true)
-        const disablePress = store.get(`device.${deviceId}.disablePress`, false)
-        const autoHide = store.get(`device.${deviceId}.autoHide`, false)
-        const hideEmptyKeys = store.get(`device.${deviceId}.hideEmptyKeys`, false)
-        const backgroundColor = store.get(`device.${deviceId}.backgroundColor`, '#000000')
-        const backgroundOpacity = store.get(`device.${deviceId}.backgroundOpacity`, 0.5)
-
-        return {
-            columnCount,
-            rowCount,
-            bitmapSize,
-            alwaysOnTop,
-            movable,
-            disablePress,
-            autoHide,
-            hideEmptyKeys,
-            backgroundColor,
-            backgroundOpacity,
-        }
-    }
-
     // TODO: IPC
-    ipcMain.handle('getDeviceConfig',
-        (_, deviceId) => getDeviceConfig(deviceId)
-    );
+    ipcMain.handle('getDeviceConfig', (_, deviceId) => getDeviceConfig(deviceId))
 
     // TODO: IPC
     ipcMain.handle('getKeypadBounds', (_event, deviceId) => {
         const win = globalContext.deviceWindows?.get(deviceId)
         if (win) {
             const bounds = win.getBounds()
-            const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
-            return { ...bounds, bitmapSize }
+            const cfg = getDeviceConfig(deviceId)
+            return { ...bounds, bitmapSize: cfg.bitmapSize }
         }
         return null
     })
@@ -76,60 +59,33 @@ export function initializeIpcHandlers() {
         const win = globalContext.deviceWindows?.get(deviceId)
         if (win) {
             win.hide()
-            store.set(`device.${deviceId}.hidden`, true)
+            setDeviceHidden(deviceId, true);
         }
 
         updateTrayMenu()
     })
 
-    // Handle keyPress events (from renderer)
     // TODO: IPC
     ipcMain.on('keyPress', (_event, { deviceId, x, y, action }) => {
-        if (!globalContext.satelliteClient) return
-
-        const disablePress = store.get(`device.${deviceId}.disablePress`, false)
-        if (disablePress) {
-            console.log(`Button presses disabled for ${deviceId}. Ignoring.`)
-            return
-        }
-
-        if (action === 'down') {
-            globalContext.satelliteClient.keyDownXY(deviceId, x, y)
-        } else if (action === 'up') {
-            globalContext.satelliteClient.keyUpXY(deviceId, x, y)
-        } else if (action === 'rotateLeft') {
-            globalContext.satelliteClient.rotateLeftXY(deviceId, x, y)
-        } else if (action === 'rotateRight') {
-            globalContext.satelliteClient.rotateRightXY(deviceId, x, y)
-        }
+        return emitKeyAction(deviceId, x, y, action)
     })
 
     // TODO: IPC
     ipcMain.handle('getKeyConfig', (_event, { deviceId, keyIndex }) => {
-        return {
-            isEncoder: store.get(`device.${deviceId}.key.${keyIndex}.isEncoder`, false),
-            stepSize: store.get(`device.${deviceId}.key.${keyIndex}.stepSize`, 10),
-        }
+        return getKeyConfig(deviceId, keyIndex)
     })
 
     // TODO: IPC
     ipcMain.handle('updateKeyConfig', (_event, { deviceId, keyIndex, config }) => {
-        const isEncoder = config.isEncoder ?? false
-        const stepSize = config.stepSize ?? 10
-        store.set(`device.${deviceId}.key.${keyIndex}.isEncoder`, isEncoder)
-        store.set(`device.${deviceId}.key.${keyIndex}.stepSize`, stepSize)
+        return updateKeyConfig(deviceId, keyIndex, config)
     })
 
     // TODO: IPC
     ipcMain.handle('toggleEncoder', (_event, { deviceId, keyIndex }) => {
-        const current = store.get(`device.${deviceId}.key.${keyIndex}.isEncoder`, false)
-        const newValue = !current
-        store.set(`device.${deviceId}.key.${keyIndex}.isEncoder`, newValue)
-        return newValue
+        return toggleKeyIsEncoder(deviceId, keyIndex)
     })
 
-    // Handle brightness request from renderer (optional)
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('setBrightness', (_event, brightness) => {
         globalContext.deviceWindows?.forEach((win) => {
             // TODO: IPC
@@ -137,14 +93,12 @@ export function initializeIpcHandlers() {
         })
     })
 
-    //HOTKEYS
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('setHotkeyContext', (_event, { deviceId, keyIndex, imageBase64 }) => {
         globalContext.hotkeyContext = { deviceId, keyIndex, imageBase64 }
     })
 
-    // Get key context for the hotkey prompt
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('getHotkeyContext', (_event) => {
         const context = globalContext.hotkeyContext // deviceId, keyIndex, imageBase64
 
@@ -178,7 +132,7 @@ export function initializeIpcHandlers() {
         }
     })
 
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('openHotkeyPrompt', () => {
         if (globalContext.hotkeyPromptWindow && !globalContext.hotkeyPromptWindow.isDestroyed()) {
             globalContext.hotkeyPromptWindow.focus()
@@ -226,15 +180,14 @@ export function initializeIpcHandlers() {
         })
     })
 
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('closeHotkeyPrompt', () => {
         if (globalContext.hotkeyPromptWindow && !globalContext.hotkeyPromptWindow.isDestroyed()) {
             globalContext.hotkeyPromptWindow.close()
         }
     })
 
-    // Handle assignHotkey
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('assignHotkey', (_event, { deviceId, keyIndex, hotkey }) => {
         // const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
         // const x = keyIndex % columnCount
@@ -243,179 +196,96 @@ export function initializeIpcHandlers() {
         // Register in hotkeys.ts
         const success = registerHotkey(hotkey, deviceId, keyIndex)
         if (success) {
-            // Save to store
-            const keyConfig = store.get(`device.${deviceId}.keys`, {}) as Record<
-                number,
-                { hotkey?: string }
-            >
-            keyConfig[keyIndex] = { ...(keyConfig[keyIndex] || {}), hotkey }
-            store.set(`device.${deviceId}.keys`, keyConfig)
+            updateDeviceKeyConfig(deviceId, keyIndex, { hotkey });
         }
 
         return success
     })
 
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('clearHotkey', (_event, { deviceId, keyIndex, hotkey }) => {
         unregisterHotkey(hotkey)
 
-        const keyConfig = store.get(`device.${deviceId}.keys`, {}) as Record<
-            number,
-            { hotkey?: string }
-        >
-        if (keyConfig[keyIndex]) {
-            delete keyConfig[keyIndex].hotkey
-            store.set(`device.${deviceId}.keys`, keyConfig)
-        }
+        updateDeviceKeyConfig(deviceId, keyIndex, { hotkey: undefined });
 
         return true
     })
 
-    // TODO: IPC
+    // TODO: IPC (electron-only)
     ipcMain.handle('showDeviceLabels', (_event, show) => {
         showDeviceLabels(show)
     })
 
-    //SETTINGS
     // TODO: IPC
     ipcMain.handle('createNewDevice', () => {
-        const newDeviceId = createNewDevice()
-
-        let deviceIds = store.get('deviceIds', []) as string[]
-        deviceIds.push(newDeviceId)
-        store.set('deviceIds', deviceIds)
+        const newDeviceId = createDevice();
 
         // Create the window
         createDeviceWindow(newDeviceId)
-
-        globalContext.satelliteClient?.addDevice(newDeviceId, 'ScreenDeck', {
-            columnCount: store.get(`device.${newDeviceId}.columnCount`, 8),
-            rowCount: store.get(`device.${newDeviceId}.rowCount`, 4),
-            bitmapSize: store.get(`device.${newDeviceId}.bitmapSize`, 72),
-            colours: true,
-            text: true,
-            brightness: true,
-            pincodeMap: null,
-        })
 
         return newDeviceId
     })
 
     // TODO: IPC
     ipcMain.handle('getAllDevices', () => {
-        const deviceIds = store.get('deviceIds', []) as string[]
-        return deviceIds.map((id) => ({
-            deviceId: id,
-            name: store.get(`device.${id}.name`, ''),
-            columnCount: store.get(`device.${id}.columnCount`, 8),
-            rowCount: store.get(`device.${id}.rowCount`, 4),
-            bitmapSize: store.get(`device.${id}.bitmapSize`, 72),
-            alwaysOnTop: store.get(`device.${id}.alwaysOnTop`, false),
-            movable: store.get(`device.${id}.movable`, true),
-            disablePress: store.get(`device.${id}.disablePress`, false),
-            autoHide: store.get(`device.${id}.autoHide`, false),
-            hideEmptyKeys: store.get(`device.${id}.hideEmptyKeys`, false),
-            backgroundColor: store.get(`device.${id}.backgroundColor`, '#000000'),
-            backgroundOpacity: store.get(`device.${id}.backgroundOpacity`, 0.5),
-        }))
+        return getAllDevices();
     })
 
     // TODO: IPC
     ipcMain.handle('updateDeviceConfig', (_event, { deviceId, config }) => {
-        let needsDeviceUpdate = false
+        const needsDeviceUpdate = updateDeviceConfig(deviceId, config);
 
-        // Check if key properties have actually changed
-        for (const key of ['columnCount', 'rowCount', 'bitmapSize']) {
-            const oldValue = store.get(`device.${deviceId}.${key}`)
-            const newValue = config[key]
+        const cfg = getDeviceConfig(deviceId)
 
-            if (newValue !== undefined && newValue !== oldValue) {
-                needsDeviceUpdate = true
-                break
-            }
-        }
-
-        // Save all config values
-        Object.entries(config).forEach(([key, value]) => {
-            const fullKey = `device.${deviceId}.${key}`
-
-            if (value === undefined) {
-                store.delete(fullKey as any)
-            } else {
-                store.set(fullKey, value)
-            }
-        })
-
-        console.log(`Device ${deviceId} config updated:`, config)
+        console.log(`Device ${deviceId} config updated:`, cfg)
 
         // Update the BrowserWindow properties
         const win = globalContext.deviceWindows.get(deviceId)
         if (win) {
-            if (config.alwaysOnTop !== undefined) {
-                win.setAlwaysOnTop(Boolean(config.alwaysOnTop))
+            if (cfg.alwaysOnTop !== undefined) {
+                win.setAlwaysOnTop(Boolean(cfg.alwaysOnTop))
             }
-            if (config.movable !== undefined) {
-                win.setMovable(Boolean(config.movable))
+            if (cfg.movable !== undefined) {
+                win.setMovable(Boolean(cfg.movable))
             }
-            if (config.disablePress !== undefined) {
+            if (cfg.disablePress !== undefined) {
                 // TODO: IPC
-                win.webContents.send('disablePress', Boolean(config.disablePress))
+                win.webContents.send('disablePress', Boolean(cfg.disablePress))
             }
-            if (config.autoHide !== undefined) {
+            if (cfg.autoHide !== undefined) {
                 // TODO: IPC
-                win.webContents.send('autoHide', Boolean(config.autoHide))
+                win.webContents.send('autoHide', Boolean(cfg.autoHide))
             }
-            if (config.hideEmptyKeys !== undefined) {
+            if (cfg.hideEmptyKeys !== undefined) {
                 //resizeWindowForDevice(deviceId)
                 // TODO: IPC
-                win.webContents.send('hideEmptyKeys', Boolean(config.hideEmptyKeys))
+                win.webContents.send('hideEmptyKeys', Boolean(cfg.hideEmptyKeys))
             }
 
             // Resize window if columnCount/rowCount/bitmapSize changed
             if (needsDeviceUpdate) {
-                const columnCount = store.get(`device.${deviceId}.columnCount`, 8)
-                const rowCount = store.get(`device.${deviceId}.rowCount`, 4)
-                const bitmapSize = store.get(`device.${deviceId}.bitmapSize`, 72)
-
-                const { width, height } = calculateWindowSize(columnCount, rowCount, bitmapSize)
+                const { width, height } = calculateWindowSize(cfg.columnCount, cfg.rowCount, cfg.bitmapSize)
 
                 win.setSize(width, height)
 
-                // If the Satellite client is connected and key properties changed, update the device config
-                if (globalContext.satelliteClient) {
-                    globalContext.satelliteClient.removeDevice(deviceId)
-                    globalContext.satelliteClient.addDevice(deviceId, 'ScreenDeck', {
-                        columnCount: store.get(`device.${deviceId}.columnCount`, 8),
-                        rowCount: store.get(`device.${deviceId}.rowCount`, 4),
-                        bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
-                        colours: true,
-                        text: true,
-                        brightness: true,
-                        pincodeMap: null,
-                    })
-                }
-
                 // TODO: IPC
                 win.webContents.send('rebuildGrid', {
-                    columnCount,
-                    rowCount,
+                    columnCount: cfg.columnCount,
+                    rowCount: cfg.rowCount,
                 })
             }
 
             // Update background color/opacity *live*
-            if (config.backgroundColor !== undefined || config.backgroundOpacity !== undefined) {
-                const backgroundColor = store.get(`device.${deviceId}.backgroundColor`, '#000000')
-                const backgroundOpacity = store.get(`device.${deviceId}.backgroundOpacity`, 0.5)
-
+            if (cfg.backgroundColor !== undefined || cfg.backgroundOpacity !== undefined) {
                 console.log('Updating background color/opacity:', {
-                    backgroundColor,
-                    backgroundOpacity,
+                    backgroundColor: cfg.backgroundColor,
+                    backgroundOpacity: cfg.backgroundOpacity,
                 })
 
                 // TODO: IPC
                 win.webContents.send('updateBackground', {
-                    backgroundColor,
-                    backgroundOpacity,
+                    backgroundColor: cfg.backgroundColor,
+                    backgroundOpacity: cfg.backgroundOpacity,
                 })
             }
 
@@ -427,18 +297,6 @@ export function initializeIpcHandlers() {
 
     // TODO: IPC
     ipcMain.handle('deleteDevice', (_event, deviceId) => {
-        let deviceIds = store.get('deviceIds', []) as string[]
-        deviceIds = deviceIds.filter((id) => id !== deviceId)
-        store.set('deviceIds', deviceIds)
-
-        // Remove all device-specific settings
-        const keys = Object.keys(store.store)
-        keys.forEach((key) => {
-            if (key.startsWith(`device.${deviceId}.`)) {
-                store.delete(key as any)
-            }
-        })
-
         // Close the window
         const win = globalContext.deviceWindows.get(deviceId)
         if (win) {
@@ -446,74 +304,25 @@ export function initializeIpcHandlers() {
             globalContext.deviceWindows.delete(deviceId)
         }
 
-        // If the Satellite client is connected, remove the device
-        if (globalContext.satelliteClient) {
-            globalContext.satelliteClient.removeDevice(deviceId)
-        }
+        deleteDevice(deviceId)
+
         console.log(`Device ${deviceId} deleted.`)
     })
 
     // TODO: IPC
     ipcMain.handle('getSettings', () => {
-        return store.store
+        return getSettings();
     })
 
     // Handle saving settings
     // TODO: IPC
     ipcMain.handle('saveSettings', (_event, newSettings) => {
-        const previousIP = store.get('companionIP', '127.0.0.1')
-        const previousPort = store.get('companionPort', 16622)
-
-        store.set(newSettings)
-
-        const newIP = newSettings.companionIP
-        const newPort = newSettings.companionPort
-
-        if (newIP !== previousIP || newPort !== previousPort) {
-            console.log('Companion IP or port changed, restarting connection...')
-
-            if (globalContext.satelliteClient) {
-                globalContext.satelliteClient.disconnect() // Your close method for the new API
-                globalContext.satelliteClient = null
-            }
-
-            // Wait briefly, then reconnect with the new IP/port
-            setTimeout(() => {
-                createSatellite() // Your function to initialize the Satellite client
-            }, 500)
-        }
+        saveConnectionSettings(newSettings);
     })
 
     // TODO: IPC
     ipcMain.handle('deviceInit', async (_, deviceId: string) => {
-        console.log('Device init requested for deviceId:', deviceId);
-
-        // validate device id
-        const deviceConfig = store.get(`device.${deviceId}.columnCount`)
-        if (!deviceConfig) {
-            throw new Error(`Device ${deviceId} not found in store.`)
-        }
-
-        if (!globalContext.satelliteClient) {
-            throw new Error('Satellite client not initialized yet.');
-        }
-
-        globalContext.satelliteClient.removeDevice(deviceId);
-
-        await new Promise((resolve) => setTimeout(resolve, 500))
-
-        // add the device again (so that we get draw commands)
-        globalContext.satelliteClient!.addDevice(deviceId, 'ScreenDeck', {
-            columnCount: store.get(`device.${deviceId}.columnCount`, 8),
-            rowCount: store.get(`device.${deviceId}.rowCount`, 4),
-            bitmapSize: store.get(`device.${deviceId}.bitmapSize`, 72),
-            colours: true,
-            text: true,
-            brightness: true,
-            pincodeMap: null,
-        })
-
-        return getDeviceConfig(deviceId);
+        return deviceInit(deviceId)
     })
 
     // TODO: IPC
