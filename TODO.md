@@ -40,15 +40,13 @@
 ## GitHub issues
 - [ ] Show ScreenDeck on startup
 - [ ] Feature Request: Rename ScreenDeck locally
-- [ ] Encoder does not work with touch
 - [ ] Shortcut on Desktop to launch ScreenDeck Settings
-- [ ] Rotary Dial Button Press Support
-- [ ] Better Touch Support (Long press on touch screens triggering ctx menu)
-- [ ] mDNS discovery support
 - [ ] ScreenDeck General Purpose Hotkeys
 - [ ] Make moving window easier & smoother
 - [ ] Multiple Companion Servers
-- [ ] Edit Mode to Rearrange Buttons
+- [ ] Edit Mode to Rearrange Buttons (locally)
+- [ ] mDNS discovery support
+  - implemented, but needs testing
 
 - https://github.com/anonrig/electron-server
 - https://github.com/wexond/rpc
