@@ -29,7 +29,6 @@
 - OLED like filter for the key canvas.
 - in mobile web:
   - prevent screen dimming/sleeping while in use.
-- Fix rendering of key after changed to encoder or to button
 - make page foreground from background speed.
   - cache the key states in memory of backend.
   - when page is foregrounded, quickly redraw all keys from cache. without waiting for companion state.

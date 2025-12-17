@@ -564,6 +564,49 @@ const styles = `
             transition: none !important;
         }
     }
+
+    /* Config mode styles */
+    .fab.config-mode {
+        background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+        animation: config-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes config-pulse {
+        0%, 100% { box-shadow: 0 4px 12px rgba(241, 39, 17, 0.4); }
+        50% { box-shadow: 0 4px 20px rgba(241, 39, 17, 0.8); }
+    }
+
+    .fab-menu-item.active {
+        background: rgba(102, 126, 234, 0.3);
+        font-weight: bold;
+    }
+
+    .key.config-highlight {
+        outline: 3px dashed rgba(245, 175, 25, 0.8) !important;
+    }
+
+    /* Config mode banner */
+    .config-mode-banner {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 1001;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .config-mode-banner.visible {
+        opacity: 1;
+    }
 `
 
 const InjectStyles = () => (
@@ -884,6 +927,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         let fabVisible = true
         let fabMenuOpen = false
         let fabLongPressTimer: ReturnType<typeof setTimeout> | null = null
+        let configModeEnabled = false
 
         // Create FAB element
         const fab = document.createElement('button')
@@ -892,16 +936,50 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         fab.setAttribute('aria-label', 'Settings menu')
         document.body.appendChild(fab)
 
+        // Create config mode banner
+        const configBanner = document.createElement('div')
+        configBanner.className = 'config-mode-banner'
+        configBanner.textContent = '⚙️ CONFIG MODE - Tap keys to toggle encoder/button'
+        document.body.appendChild(configBanner)
+
         // Create FAB menu
         const fabMenu = document.createElement('div')
         fabMenu.className = 'fab-menu'
         fabMenu.innerHTML = `
+            <div class="fab-menu-item" data-action="config-mode">🔧 Toggle Config Mode</div>
             <div class="fab-menu-item" data-action="fullscreen">⛶ ${document.fullscreenElement ? 'Exit' : 'Enter'} Fullscreen</div>
             <div class="fab-menu-item" data-action="lock-landscape">🔒 Lock Landscape</div>
             <div class="fab-menu-item" data-action="lock-portrait">🔒 Lock Portrait</div>
             <div class="fab-menu-item" data-action="unlock-orientation">🔓 Unlock Orientation</div>
         `
         document.body.appendChild(fabMenu)
+
+        // Toggle config mode function
+        function toggleConfigMode() {
+            configModeEnabled = !configModeEnabled
+            fab.classList.toggle('config-mode', configModeEnabled)
+            configBanner.classList.toggle('visible', configModeEnabled)
+
+            // Update menu item to show active state
+            const configMenuItem = fabMenu.querySelector('[data-action="config-mode"]')
+            if (configMenuItem) {
+                configMenuItem.classList.toggle('active', configModeEnabled)
+                configMenuItem.textContent = configModeEnabled ? '✓ Config Mode ON' : '🔧 Toggle Config Mode'
+            }
+
+            // Add visual indicator to keys
+            keyElements.forEach(key => {
+                key.classList.toggle('config-highlight', configModeEnabled)
+            })
+
+            triggerHapticFeedback(configModeEnabled ? 30 : 15)
+        }
+
+        // Expose config mode state for key handlers
+        ; (window as any).__keypadConfigMode = {
+            get enabled() { return configModeEnabled },
+            toggle: toggleConfigMode
+        }
 
         // Toggle FAB menu on tap (only if not dragged)
         let fabWasDragged = false
@@ -1049,7 +1127,11 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             item.addEventListener('click', (e) => {
                 const action = (e.target as HTMLElement).getAttribute('data-action')
 
-                if (action === 'fullscreen') {
+                if (action === 'config-mode') {
+                    toggleConfigMode()
+                    // Don't close menu for config mode toggle
+                    return
+                } else if (action === 'fullscreen') {
                     toggleFullscreen()
                 } else if (action === 'lock-landscape') {
                     lockOrientation('landscape')
@@ -1062,7 +1144,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 // Close menu after action
                 fabMenuOpen = false
                 fabMenu.classList.remove('visible')
-                fab.innerHTML = '⚙️'
+                fab.innerHTML = configModeEnabled ? '🔧' : '⚙️'
             })
         })
 
@@ -1538,6 +1620,16 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             keyElements[keyIndex] = newKeyElement as HTMLElement
             bindKeyEvents(newKeyElement, keyIndex, keyConfig)
 
+            // CRITICAL: Clear render cache for this key since we cloned the element
+            // The old cache points to the old detached canvas - must create fresh one
+            keyRenderCache.delete(keyIndex)
+
+            // Re-apply config mode highlight if enabled
+            const configMode = (window as any).__keypadConfigMode
+            if (configMode?.enabled) {
+                newKeyElement.classList.add('config-highlight')
+            }
+
             const state = keyStates.get(deviceId)?.get(keyIndex)
             if (state) {
                 processKey(state)
@@ -1620,6 +1712,24 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 return
             }
 
+            // Config mode: toggle encoder/button instead of normal action
+            const configMode = (window as any).__keypadConfigMode
+            if (configMode?.enabled) {
+                e.preventDefault()
+                e.stopPropagation()
+
+                // Toggle encoder state
+                const newIsEncoder = !isEncoder
+                api.updateKeyConfig({
+                    deviceId: DEVICE_ID,
+                    keyIndex: i,
+                    config: { isEncoder: newIsEncoder },
+                }).then(() => refreshKey(DEVICE_ID, i))
+
+                triggerHapticFeedback(25)
+                return
+            }
+
             if (isEncoder) {
                 e.preventDefault()
 
@@ -1689,6 +1799,22 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             e.preventDefault() // Prevent mouse event emulation
             triggerHapticFeedback()
             key.classList.add('pressed') // Visual feedback
+
+            // Config mode: toggle encoder/button instead of normal action
+            const configMode = (window as any).__keypadConfigMode
+            if (configMode?.enabled) {
+                // Toggle encoder state
+                const newIsEncoder = !isEncoder
+                api.updateKeyConfig({
+                    deviceId: DEVICE_ID,
+                    keyIndex: i,
+                    config: { isEncoder: newIsEncoder },
+                }).then(() => refreshKey(DEVICE_ID, i))
+
+                triggerHapticFeedback(25)
+                key.classList.remove('pressed')
+                return
+            }
 
             if (isEncoder) {
                 const touch = e.touches[0]
