@@ -1478,6 +1478,12 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             keypad.appendChild(keyElement)
             keyElements.push(keyElement)
 
+            // Bind events with default config first (non-encoder) to avoid race condition
+            // Events will be rebound when actual config is fetched
+            const defaultConfig = { isEncoder: false, stepSize: 10 }
+            bindKeyEvents(keyElement, i, defaultConfig)
+
+            // Fetch actual config and rebind if different
             refreshKey(DEVICE_ID, i)
         }
     }
