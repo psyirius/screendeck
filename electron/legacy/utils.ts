@@ -143,6 +143,8 @@ export function createSatellite() {
     })
 
     globalContext.satelliteClient.on('lockedState', (data) => {
+        console.log(`[Satellite] Locked State: ${data.deviceId} (${data.locked})`)
+
         const win = globalContext.deviceWindows.get(data.deviceId)
         if (win) {
             // TODO: IPC
