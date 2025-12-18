@@ -821,6 +821,9 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     if (_initDone) return;
     _initDone = true;
 
+    // Global configuration constants
+    const ENCODER_HOLD_DELAY_MS = 250; // Time before encoder press registers as "hold"
+
     if (!DEVICE_ID) {
         console.error('No deviceId in query string')
         throw new Error('No deviceId')
@@ -1833,7 +1836,18 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 let accumulatedDeltaX = 0
                 let lastX = e.clientX
                 let didRotate = false // Track if any rotation occurred
+                let holdTriggered = false // Track if hold was triggered
+                let holdTimer: ReturnType<typeof setTimeout> | null = null
                 const startX = e.clientX
+
+                // Start hold timer - if held without rotation, treat as button hold
+                holdTimer = setTimeout(() => {
+                    if (!didRotate) {
+                        holdTriggered = true
+                        sendKeyPress(i, 'down')
+                        key.classList.add('pressed')
+                    }
+                }, ENCODER_HOLD_DELAY_MS)
 
                 const onMove = (moveEvent) => {
                     const deltaX = moveEvent.clientX - lastX
@@ -1842,6 +1856,13 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     let direction: ('rotateRight' | 'rotateLeft') | null = null
                     while (Math.abs(accumulatedDeltaX) >= stepSize) {
                         didRotate = true
+
+                        // Cancel hold timer if rotating
+                        if (holdTimer) {
+                            clearTimeout(holdTimer)
+                            holdTimer = null
+                        }
+
                         direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
                         sendKeyPress(i, direction)
                         triggerEncoderTick(key) // Visual feedback for step
@@ -1866,13 +1887,24 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 const onUp = (upEvent) => {
                     window.removeEventListener('mousemove', onMove)
                     window.removeEventListener('mouseup', onUp)
-                    key.classList.remove('rotateLeft', 'rotateRight')
+                    key.classList.remove('rotateLeft', 'rotateRight', 'pressed')
 
-                    // If no rotation occurred, treat as a click
-                    const totalMovement = Math.abs(upEvent.clientX - startX)
-                    if (!didRotate && totalMovement < stepSize) {
-                        sendKeyPress(i, 'down')
+                    // Clear hold timer if still pending
+                    if (holdTimer) {
+                        clearTimeout(holdTimer)
+                        holdTimer = null
+                    }
+
+                    if (holdTriggered) {
+                        // Was holding - send up
                         sendKeyPress(i, 'up')
+                    } else if (!didRotate) {
+                        // No rotation and no hold - treat as quick tap
+                        const totalMovement = Math.abs(upEvent.clientX - startX)
+                        if (totalMovement < stepSize) {
+                            sendKeyPress(i, 'down')
+                            sendKeyPress(i, 'up')
+                        }
                     }
                 }
 
@@ -1918,7 +1950,18 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 let accumulatedDeltaX = 0
                 let lastX = touch.clientX
                 let didRotate = false // Track if any rotation occurred
+                let holdTriggered = false // Track if hold was triggered
+                let holdTimer: ReturnType<typeof setTimeout> | null = null
                 const startX = touch.clientX
+
+                // Start hold timer - if held without rotation, treat as button hold
+                holdTimer = setTimeout(() => {
+                    if (!didRotate) {
+                        holdTriggered = true
+                        sendKeyPress(i, 'down')
+                        triggerHapticFeedback(15)
+                    }
+                }, ENCODER_HOLD_DELAY_MS)
 
                 const onTouchMove = (moveEvent: TouchEvent) => {
                     const moveTouch = moveEvent.touches[0]
@@ -1930,6 +1973,13 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     let direction: ('rotateRight' | 'rotateLeft') | null = null
                     while (Math.abs(accumulatedDeltaX) >= stepSize) {
                         didRotate = true
+
+                        // Cancel hold timer if rotating
+                        if (holdTimer) {
+                            clearTimeout(holdTimer)
+                            holdTimer = null
+                        }
+
                         direction = accumulatedDeltaX > 0 ? 'rotateRight' : 'rotateLeft'
                         sendKeyPress(i, direction)
                         triggerHapticFeedback(5) // Lighter feedback for encoder steps
@@ -1958,12 +2008,23 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                     window.removeEventListener('touchcancel', onTouchEnd)
                     key.classList.remove('rotateLeft', 'rotateRight', 'pressed')
 
-                    // If no rotation occurred, treat as a tap/click
-                    const endTouch = endEvent.changedTouches[0]
-                    const totalMovement = endTouch ? Math.abs(endTouch.clientX - startX) : 0
-                    if (!didRotate && totalMovement < stepSize) {
-                        sendKeyPress(i, 'down')
+                    // Clear hold timer if still pending
+                    if (holdTimer) {
+                        clearTimeout(holdTimer)
+                        holdTimer = null
+                    }
+
+                    if (holdTriggered) {
+                        // Was holding - send up
                         sendKeyPress(i, 'up')
+                    } else if (!didRotate) {
+                        // No rotation and no hold - treat as quick tap
+                        const endTouch = endEvent.changedTouches[0]
+                        const totalMovement = endTouch ? Math.abs(endTouch.clientX - startX) : 0
+                        if (totalMovement < stepSize) {
+                            sendKeyPress(i, 'down')
+                            sendKeyPress(i, 'up')
+                        }
                     }
                 }
 

@@ -35,6 +35,8 @@
   - cache the key states in memory of backend.
   - when page is foregrounded, quickly redraw all keys from cache. without waiting for companion state.
 - Mobile native app? for more natural feel.
+- Figure out a mice way to mimic a rotary encoder with button.
+  - currently for hold actions waiting for 100ms till no drag and send press action.
 - PWA?
 
 ## GitHub issues
