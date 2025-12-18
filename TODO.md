@@ -37,6 +37,7 @@
 - Mobile native app? for more natural feel.
 - Figure out a mice way to mimic a rotary encoder with button.
   - currently for hold actions waiting for 250ms till no drag and send press action.
+- Use Device Variables to build Custom widgets and stuff.
 - PWA?
 
 ## GitHub issues
