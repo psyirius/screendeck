@@ -61,6 +61,7 @@
   - MIDI devices.
   - Game Controllers.
   - Other HID devices.
+- As a Node Server for standalone and Docker.
 - PWA?
 
 ## GitHub issues
