@@ -209,8 +209,13 @@ export function refreshDeviceRegisterProps(deviceId: string) {
     const rows = store.get(`device.${deviceId}.rowCount`, 4)
 
     const registerProps = createDeviceRegisterProps(rows, columns, {
-        w: bitmapSize,
-        h: bitmapSize,
+        bitmap: {
+            w: bitmapSize,
+            h: bitmapSize,
+        },
+        text: true,
+        textStyle: true,
+        colors: 'hex',
     })
     store.set(`device.${deviceId}.registerProps`, registerProps)
 }
@@ -236,8 +241,13 @@ export function createNewDevice(): string {
         const rows = store.get(`device.${newDeviceId}.rowCount`, 4)
 
         const registerProps = createDeviceRegisterProps(rows, columns, {
-            w: bitmapSize,
-            h: bitmapSize,
+            bitmap: {
+                w: bitmapSize,
+                h: bitmapSize,
+            },
+            text: true,
+            textStyle: true,
+            colors: 'hex',
         })
         store.set(`device.${newDeviceId}.registerProps`, registerProps)
     }
