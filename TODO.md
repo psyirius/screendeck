@@ -38,6 +38,13 @@
 - Figure out a mice way to mimic a rotary encoder with button.
   - currently for hold actions waiting for 250ms till no drag and send press action.
 - Use Device Variables to build Custom widgets and stuff.
+- Companion draws graphics for keys using
+  - @napi-rs/canvas
+  - @julusian/image-rs
+- We use "screendeck:{SUUID}", prefixes like "emulator:" and "group:" are reserved for internal.
+- Handle 'REMOVE-DEVICE' ack from SatelliteClient.
+- Satellite API
+  - Check: https://github.com/bitfocus/companion/blob/main/companion/lib/Service/Satellite/SatelliteApi.ts
 - PWA?
 
 ## GitHub issues

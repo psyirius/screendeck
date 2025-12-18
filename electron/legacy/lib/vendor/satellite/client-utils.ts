@@ -4,6 +4,7 @@ import type {
     SatelliteConfigSize,
     SatelliteSurfaceLayout,
 } from './client-types'
+// import { Pincode4x3 } from './pincode'
 
 export function assertNever(_v: never): void {
     // Nothing to do
@@ -89,6 +90,21 @@ export function createDeviceRegisterProps(
         gridSize: calculateGridSize(surfaceManifest),
         fallbackBitmapSize: bitmapSize ? Math.min(bitmapSize.h, bitmapSize.w) : 0,
         brightness: true,
-        pincodeMap: null,
+        pincodeMap: null, // FIXME: not receiving any initial draws if supplied anything.
+        // pincodeMap: Pincode4x3(),
+        // pincodeMap: {
+        //     type: 'single-page',
+        //     pincode: [1, 2],
+        //     0: [3, 2],
+        //     1: [0, 0],
+        //     2: [1, 0],
+        //     3: [2, 0],
+        //     4: [3, 0],
+        //     5: [0, 1],
+        //     6: [1, 1],
+        //     7: [2, 1],
+        //     8: [3, 1],
+        //     9: [0, 2],
+        // },
     }
 }

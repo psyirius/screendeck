@@ -822,7 +822,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     _initDone = true;
 
     // Global configuration constants
-    const ENCODER_HOLD_DELAY_MS = 250; // Time before encoder press registers as "hold"
+    const ENCODER_HOLD_DELAY_MS = 250 // Time before encoder press registers as "hold"
 
     if (!DEVICE_ID) {
         console.error('No deviceId in query string')
@@ -857,10 +857,10 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     }
     const keyRenderCache = new Map<number, KeyRenderCache>()
 
-    // Track initial draw events for staggered animation
-    let expectedKeyCount = 0
-    let initialDrawsReceived = new Set<number>()
+    // Track initial draw events for staggered animation (debounced approach)
     let initialAnimationTriggered = false
+    let animationDebounceTimer: ReturnType<typeof setTimeout> | null = null
+    const ANIMATION_DEBOUNCE_MS = 100 // Trigger animation after draws stop for this duration
 
     // --- Mobile UX Features ---
 
@@ -1464,10 +1464,12 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
 
         const keysTotal = columnCount * rowCount
 
-        // Reset animation tracking for initial draws
-        expectedKeyCount = keysTotal
-        initialDrawsReceived.clear()
+        // Reset animation tracking
         initialAnimationTriggered = false
+        if (animationDebounceTimer) {
+            clearTimeout(animationDebounceTimer)
+            animationDebounceTimer = null
+        }
 
         for (let i = 0; i < keysTotal; i++) {
             const keyElement = document.createElement('div')!
@@ -2172,14 +2174,15 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         keyStates.get(keyObj.deviceId)!.set(keyObj.keyIndex, keyObj)
         processKey(keyObj)
 
-        // Track initial draws for animation trigger
-        if (!initialAnimationTriggered && expectedKeyCount > 0) {
-            initialDrawsReceived.add(keyObj.keyIndex)
-
-            // Once we've received draws for all keys, trigger animation
-            if (initialDrawsReceived.size >= expectedKeyCount) {
-                triggerKeyAnimation()
+        // Debounced animation trigger - wait for draws to stop before animating
+        if (!initialAnimationTriggered) {
+            // Reset timer on each draw
+            if (animationDebounceTimer) {
+                clearTimeout(animationDebounceTimer)
             }
+            animationDebounceTimer = setTimeout(() => {
+                triggerKeyAnimation()
+            }, ANIMATION_DEBOUNCE_MS)
         }
     })
 
