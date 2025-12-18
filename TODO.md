@@ -57,6 +57,10 @@
     - SurfaceGraphicsContext, ...
 - Add auth to Settings page.
 - [ ] Use SurfaceInstance to Implement a ScreenDeck Device.
+- [ ] Support for
+  - MIDI devices.
+  - Game Controllers.
+  - Other HID devices.
 - PWA?
 
 ## GitHub issues
