@@ -72,20 +72,13 @@ export function createDeviceRegisterProps(
         // uses client.sendVariableValue(deviceId, id/name, value) for sending input variable updates
         // uses client.on('variableValue', { deviceId, id/name, value }) for listening to output variable
         transferVariables: [
-            // {
-            //     id: 'tbarValueVariable',
-            //     type: 'input',
-            //     name: 'Variable to store T-bar value to',
-            //     description:
-            //         'This produces a value between 0 and 1. You can use an expression to convert it into a different range.',
-            // },
-            // {
-            //     id: 'tbarLeds',
-            //     type: 'output',
-            //     name: 'T-bar LED pattern',
-            //     description:
-            //         'Set the pattern of LEDs on the T-bar. Use numbers -16 to 16, positive numbers light up from the bottom, negative from the top.',
-            // },
+            {
+                id: 'tbarLeds',
+                type: 'output',
+                name: 'T-bar LED pattern',
+                description:
+                    'Set the pattern of LEDs on the T-bar. Use numbers -16 to 16, positive numbers light up from the bottom, negative from the top.',
+            },
             {
                 id: 'batteryLevel',
                 type: 'input',

@@ -259,7 +259,7 @@ export function createNewDevice(): string {
 
 // Generate a new unique deviceId
 function generateDeviceId(): string {
-    return `screendeck-${ShortUuid.generate()}`
+    return `screendeck:${ShortUuid.generate()}`
 }
 
 // Calculate the window size based on the number of columns, rows, and bitmap size
