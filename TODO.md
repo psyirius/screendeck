@@ -62,6 +62,10 @@
   - Game Controllers.
   - Other HID devices.
 - As a Node Server for standalone and Docker.
+- Use plain js for Surface UI.
+- Use Svelte or other reactive UI for settings.
+- Bitfocus Buttons Support:
+  - Stream Deck - Network Dock. (Reverse it's protocol)
 - PWA?
 
 ## GitHub issues
