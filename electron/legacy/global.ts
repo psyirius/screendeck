@@ -1,4 +1,4 @@
-import type { CompanionSatelliteClient } from './lib/vendor/satellite/client'
+import type { CompanionSatelliteClient } from './lib/vendor/satellite/client/client'
 import type { MdnsAnnouncer } from './mdns-announcer'
 import type { FastifyInstance } from 'fastify'
 

@@ -9,7 +9,7 @@ import {
     refreshDeviceRegisterProps,
     showWindows,
 } from './device'
-import { CompanionSatelliteClient } from './lib/vendor/satellite/client'
+import { CompanionSatelliteClient } from './lib/vendor/satellite/client/client'
 import { updateTrayMenu } from './tray'
 import { ProfilesStore } from './types'
 import { showNotification } from './notification'
@@ -17,7 +17,7 @@ import { unregisterAllHotkeys } from './hotkeys'
 import { is } from '@electron-toolkit/utils'
 import { globalContext } from './global'
 import { webDeviceActions } from './web-api'
-import type { DeviceRegisterPropsComplete } from './lib/vendor/satellite/client-types'
+import type { DeviceRegisterPropsComplete } from './lib/vendor/satellite/client/types'
 
 const store = new Store({ defaults: defaultSettings })
 
@@ -130,7 +130,7 @@ export function createSatellite() {
             // TODO: IPC
             win.webContents.send('clearDeck')
         }
-        webDeviceActions.clearDeck(data.deviceId);
+        webDeviceActions.clearDeck(data.deviceId)
     })
 
     globalContext.satelliteClient.on('brightness', (data) => {
@@ -139,8 +139,11 @@ export function createSatellite() {
             // TODO: IPC
             win.webContents.send('brightness', data.percent)
         }
-        webDeviceActions.setBrightness(data.deviceId, data.percent);
+        webDeviceActions.setBrightness(data.deviceId, data.percent)
     })
+
+    // TEST
+    // const unlocking = new Set<string>();
 
     globalContext.satelliteClient.on('lockedState', (data) => {
         console.log(`[Satellite] Locked State: ${data.deviceId} (${data.locked})`)
@@ -151,6 +154,28 @@ export function createSatellite() {
             win.webContents.send('lockedState', data)
         }
         webDeviceActions.setLockedState(data.deviceId, data)
+
+        // TEST
+        // if (data.locked) {
+        //     if (unlocking.has(data.deviceId)) {
+        //         return
+        //     }
+        //     unlocking.add(data.deviceId);
+        //
+        //     setTimeout(async () => {
+        //         console.log('[Satellite] Auto unlocking device after lock state change')
+        //
+        //         const pinCode = [4, 3, 2, 1, 5, 6, 7, 8];
+        //
+        //         for (const keyCode of pinCode) {
+        //             console.log('Entering pincode key:', keyCode)
+        //             globalContext.satelliteClient!.pincodeKey(data.deviceId, keyCode)
+        //             await new Promise((resolve) => setTimeout(resolve, 1000))
+        //         }
+        //     }, 2000)
+        // } else {
+        //     unlocking.delete(data.deviceId);
+        // }
     })
 
     // Connect to Companion

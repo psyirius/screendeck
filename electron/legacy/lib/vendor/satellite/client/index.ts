@@ -1,0 +1,1 @@
+export { CompanionSatelliteClient } from './client'

@@ -36,7 +36,7 @@ const styles = `
 
     /* Keypad styles */
     .keypad {
-        /* display: grid; */ /* we set it later */
+        display: grid;
         gap: 10px;
         padding: 20px;
         /* Safe area insets for notched devices */

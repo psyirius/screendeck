@@ -44,11 +44,11 @@
 - Handle 'REMOVE-DEVICE' ack from SatelliteClient.
 - Satellite API
   - Check: https://github.com/bitfocus/companion/blob/main/companion/lib/Service/Satellite/SatelliteApi.ts
-- Pincode
+- Custom pincode lock map Pincode
   - can be entered using client.pincodeKey()
   - If locked can be drawn locally. (satellite does this using a surface proxy)
     - SurfaceGraphicsContext, ...
-- Use DrawQueue
+- Add auth to Settings page.
 - PWA?
 
 ## GitHub issues
@@ -57,7 +57,7 @@
 - [ ] Shortcut on Desktop to launch ScreenDeck Settings
 - [ ] ScreenDeck General Purpose Hotkeys
 - [ ] Make moving window easier & smoother
-- [ ] Multiple Companion Servers
+- [ ] Multiple Companion Servers?
 - [ ] Edit Mode to Rearrange Buttons (locally)
 - [ ] mDNS discovery support
   - implemented, but needs testing

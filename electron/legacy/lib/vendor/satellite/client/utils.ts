@@ -3,8 +3,8 @@ import type {
     GridSize,
     SatelliteConfigSize,
     SatelliteSurfaceLayout,
-} from './client-types'
-// import { Pincode4x3 } from './pincode'
+} from './types'
+// import { Pincode4x3, Pincode5x3 } from '../device/pincode'
 
 export function assertNever(_v: never): void {
     // Nothing to do
@@ -90,7 +90,24 @@ export function createDeviceRegisterProps(
         gridSize: calculateGridSize(surfaceManifest),
         fallbackBitmapSize: bitmapSize ? Math.min(bitmapSize.h, bitmapSize.w) : 0,
         brightness: true,
-        pincodeMap: null, // FIXME: not receiving any initial draws if supplied anything.
+        // if null we don't get locked state updates, but an initial draw for lockout
+        // if we supply a pincode map, we get locked state updates, but no initial draws.
+        // - So if we get lockedState updates, we have to handle initial draws ourselves.
+        // - we also get lockedState whenever we send a pincode via client.pincodeKey()
+        // - when a pincode ack lockedState update return false, companion draws the full surface again.
+        // Use 2 modes for pincode:
+        // 1) null - no lockedState updates, but initial draw of lockscreen from companion
+        // 2) pincodeMap - lockedState updates, but no initial draw, so we have to handle that ourselves.
+        // Using 2 options for pincode handling in our surfaces.
+        // 1) Keys: show lockscreen on the keys, but if the Grid size is <= 4x3, we can show a warning.
+        // 2) UI: show lockscreen in the UI using the configured pincodeMap. This works for all grid sizes.
+        // 3) Auto: if the grid size is >= 4x3, use keys, else use UI.
+        // Auto is default for now.
+        // Options for pincodeMap:
+        // - null (Companion draws the lockscreen, we don't handle lockedState updates, default: 5x3)
+        // - Pincode4x3(), Pincode4x4(), Pincode5x3(), Pincode6x2()
+        // - custom map: user can define their own map here.
+        pincodeMap: null,
         // pincodeMap: Pincode4x3(),
         // pincodeMap: {
         //     type: 'single-page',

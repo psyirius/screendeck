@@ -1,6 +1,21 @@
 // https://github.com/bitfocus/companion-satellite/blob/v2.6.0/satellite/src/*.ts
 // took from multiple type definition files and combined here for easier reference
 
+import type { PixelFormat } from '@julusian/image-rs'
+import type { CardGenerator } from '../graphics/cards'
+
+export interface DeviceDrawProps {
+    deviceId: string
+    /** @deprecated TODO: is this needed? */
+    keyIndex: number
+    controlId: string
+    row: number
+    column: number
+    image?: DeviceDrawImageFn
+    color?: string // hex
+    text?: string
+}
+
 export interface DeviceRegisterInputVariable {
     id: string
     type: 'input'
@@ -117,6 +132,61 @@ export interface CompanionClient {
     pincodeKey(surfaceId: string, keyCode: number): void
 
     sendVariableValue(surfaceId: string, variable: string, value: any): void
+}
+
+export type SurfaceId = string
+
+export type DeviceDrawImageFn = (
+    width: number,
+    height: number,
+    format: PixelFormat
+) => Promise<Buffer>
+
+export interface SurfaceInstance {
+    readonly pluginId: string
+
+    readonly surfaceId: SurfaceId
+    readonly productName: string
+
+    close(): Promise<void>
+
+    initDevice(): Promise<void>
+
+    deviceAdded(): Promise<void>
+
+    setBrightness(percent: number): Promise<void>
+
+    blankDevice(): Promise<void>
+
+    draw(signal: AbortSignal, data: DeviceDrawProps): Promise<void>
+
+    onVariableValue?(name: string, value: string): void
+
+    onLockedStatus?(locked: boolean, characterCount: number): void
+
+    showStatus(
+        signal: AbortSignal,
+        cardGenerator: CardGenerator,
+        hostname: string,
+        status: string
+    ): Promise<void>
+}
+
+export interface SurfaceContext {
+    get isLocked(): boolean
+    // get displayHost(): string
+
+    get capabilities(): ClientCapabilities
+
+    disconnect(error: Error): void
+
+    keyDownById(controlId: string): void
+    keyUpById(controlId: string): void
+    keyDownUpById(controlId: string): void
+    rotateLeftById(controlId: string): void
+    rotateRightById(controlId: string): void
+
+    sendVariableValue(variable: string, value: any): void
 }
 
 export interface SurfaceProxyDrawProps {

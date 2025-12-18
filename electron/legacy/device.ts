@@ -7,8 +7,8 @@ import { showDevTools } from './utils'
 import { updateTrayMenu } from './tray'
 import { is } from '@electron-toolkit/utils'
 import { globalContext } from './global'
-import { createDeviceRegisterProps } from './lib/vendor/satellite/client-utils'
-import { SatelliteControlDefinition } from './lib/vendor/satellite/client-types'
+import { createDeviceRegisterProps } from './lib/vendor/satellite/client/utils'
+import { SatelliteControlDefinition } from './lib/vendor/satellite/client/types'
 
 const store = new Store<SettingsType>({
     defaults: defaultSettings

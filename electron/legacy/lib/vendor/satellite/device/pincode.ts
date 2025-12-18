@@ -1,4 +1,4 @@
-import { SurfacePincodeMap } from './client-types'
+import { SurfacePincodeMap } from '../client/types'
 
 /**
  * This file contains some default pincode layouts, and utils for generating simple layouts.

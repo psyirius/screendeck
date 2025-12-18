@@ -3,7 +3,7 @@ import { defaultSettings } from './defaults'
 import { globalContext } from './global'
 import { createNewDevice, getControlById, getControlIdByXY, refreshDeviceRegisterProps } from './device'
 import { createSatellite } from './utils'
-import { DeviceRegisterPropsComplete } from './lib/vendor/satellite/client-types'
+import { DeviceRegisterPropsComplete } from './lib/vendor/satellite/client/types'
 
 const store = new Store({ defaults: defaultSettings })
 
