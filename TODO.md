@@ -44,6 +44,11 @@
 - Handle 'REMOVE-DEVICE' ack from SatelliteClient.
 - Satellite API
   - Check: https://github.com/bitfocus/companion/blob/main/companion/lib/Service/Satellite/SatelliteApi.ts
+- Pincode
+  - can be entered using client.pincodeKey()
+  - If locked can be drawn locally. (satellite does this using a surface proxy)
+    - SurfaceGraphicsContext, ...
+- Use DrawQueue
 - PWA?
 
 ## GitHub issues

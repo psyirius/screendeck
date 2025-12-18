@@ -83,6 +83,8 @@ const styles = `
         cursor: pointer;
         overflow: hidden;
         box-sizing: border-box;
+        /* Maintain square aspect ratio for consistent grid layout */
+        aspect-ratio: 1;
         /* Smooth transitions for visual feedback */
         transition: transform 0.1s ease, filter 0.1s ease;
         /* Prevent touch delays and unwanted gestures */
