@@ -66,6 +66,7 @@
 - Use Svelte or other reactive UI for settings.
 - Bitfocus Buttons Support:
   - Stream Deck - Network Dock. (Reverse it's protocol)
+- Buttons actually renders prerendered images from server and loading in the button infinitely frame by frame.
 - PWA?
 
 ## GitHub issues

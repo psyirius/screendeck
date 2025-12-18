@@ -825,6 +825,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
 
     // Global configuration constants
     const ENCODER_HOLD_DELAY_MS = 250 // Time before encoder press registers as "hold"
+    const ENCODER_INVERT_SCROLL = true // Set true to flip scroll wheel direction
 
     if (!DEVICE_ID) {
         console.error('No deviceId in query string')
@@ -1932,6 +1933,32 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
                 sendKeyPress(i, 'up')
             }
         })
+
+        // Scroll wheel support for encoders
+        if (isEncoder) {
+            let accumulatedDelta = 0
+
+            key.addEventListener('wheel', (e: WheelEvent) => {
+                e.preventDefault()
+
+                // Accumulate scroll delta
+                accumulatedDelta += e.deltaY
+
+                // Send rotation when accumulated delta exceeds threshold
+                while (Math.abs(accumulatedDelta) >= stepSize * 2) {
+                    const isPositive = ENCODER_INVERT_SCROLL ? accumulatedDelta < 0 : accumulatedDelta > 0
+                    const direction = isPositive ? 'rotateRight' : 'rotateLeft'
+                    sendKeyPress(i, direction)
+                    triggerEncoderTick(key)
+
+                    if (accumulatedDelta > 0) {
+                        accumulatedDelta -= stepSize * 2
+                    } else {
+                        accumulatedDelta += stepSize * 2
+                    }
+                }
+            }, { passive: false })
+        }
 
         // --- Touch Events ---
         key.addEventListener('touchstart', (e: TouchEvent) => {
