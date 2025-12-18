@@ -104,10 +104,13 @@ export function createDeviceRegisterProps(
         // 3) Auto: if the grid size is >= 4x3, use keys, else use UI.
         // Auto is default for now.
         // Options for pincodeMap:
-        // - null (Companion draws the lockscreen, we don't handle lockedState updates, default: 5x3)
-        // - Pincode4x3(), Pincode4x4(), Pincode5x3(), Pincode6x2()
+        // - null (Companion draws the lockscreen, we don't handle lockedState updates, default: 5x3 for PINCODE_LOCK='')
+        // - Pincode4x3(), Pincode4x4(), Pincode5x3(), Pincode6x2(), etc
         // - custom map: user can define their own map here.
-        pincodeMap: null,
+        // pincodeMap: { type: 'custom' }
+        // - maybe disable?
+        pincodeMap: null, // companion handles lockscreen drawing
+        // pincodeMap: { type: 'custom' },
         // pincodeMap: Pincode4x3(),
         // pincodeMap: {
         //     type: 'single-page',

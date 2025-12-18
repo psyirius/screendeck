@@ -5,6 +5,9 @@
     - DeckOne (domain available, .com premium)
     - DeckStation (domain available)
     - ScreenDeck (mostly available, .tech taken)
+    - PowerDeck (???)
+    - SuperDeck (???)
+    - SuperSurface (???)
 - [ ] FIX auto hide.
 - [ ] FIX hide on connect.
 - [ ] FIX restore window position on launch.
@@ -22,6 +25,10 @@
 - [ ] Bitfocus Buttons web-ui like look.
 - [ ] Physical StreamDeck like Look.
 - [ ] Resize Deck Window on Device configuration change.
+- [ ] Plugin Support.
+- [ ] Layout Presets.
+  - Based on Physical Devices.
+  - Common Screen Sizes.
 - [ ] below commit introduced some glitches at the edges of the keys.
   - key rendering optimizations. (commit: 1f067314e2705e8e38363bb1aa548c4edfd18147)
 - add more controls. (use surface devices from satellite repo)
@@ -49,6 +56,7 @@
   - If locked can be drawn locally. (satellite does this using a surface proxy)
     - SurfaceGraphicsContext, ...
 - Add auth to Settings page.
+- [ ] Use SurfaceInstance to Implement a ScreenDeck Device.
 - PWA?
 
 ## GitHub issues
