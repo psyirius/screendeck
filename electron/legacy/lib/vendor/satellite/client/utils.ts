@@ -70,8 +70,8 @@ export function createDeviceRegisterProps(
     return {
         surfaceManifest,
         // TODO
-        // uses client.sendVariableValue(deviceId, id/name, value) for sending input variable updates
-        // uses client.on('variableValue', { deviceId, id/name, value }) for listening to output variable
+        // uses client.sendVariableValue(deviceId, name, value) for sending input variable updates
+        // uses client.on('variableValue', { deviceId, name, value }) for listening to output variable
         transferVariables: [
             {
                 id: 'tbarLeds',
