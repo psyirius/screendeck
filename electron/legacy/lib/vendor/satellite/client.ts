@@ -481,6 +481,7 @@ export class CompanionSatelliteClient
 
         this.emit('draw', { deviceId: params.DEVICEID, keyIndex, controlId, image, text, color })
     }
+
     private handleClear(params: Record<string, string | boolean>): void {
         if (typeof params.DEVICEID !== 'string') {
             this.emit('log', 'Mising DEVICEID in KEYS-CLEAR response')
@@ -489,6 +490,7 @@ export class CompanionSatelliteClient
 
         this.emit('clearDeck', { deviceId: params.DEVICEID })
     }
+
     private handleVariableValue(params: Record<string, string | boolean>) {
         if (typeof params.DEVICEID !== 'string') {
             this.emit('log', 'Mising DEVICEID in VARIABLE-VALUE response')
@@ -583,6 +585,7 @@ export class CompanionSatelliteClient
             })
         }
     }
+
     public keyUp(
         deviceId: string,
         controlId: string,
@@ -596,6 +599,7 @@ export class CompanionSatelliteClient
             })
         }
     }
+
     public rotateLeft(
         deviceId: string,
         controlId: string,
@@ -609,6 +613,7 @@ export class CompanionSatelliteClient
             })
         }
     }
+
     public rotateRight(
         deviceId: string,
         controlId: string,
@@ -622,6 +627,7 @@ export class CompanionSatelliteClient
             })
         }
     }
+
     public pincodeKey(deviceId: string, keyCode: number): void {
         if (this._connected && this.socket) {
             this.sendMessage('PINCODE-KEY', null, deviceId, {
@@ -629,6 +635,7 @@ export class CompanionSatelliteClient
             })
         }
     }
+
     public sendVariableValue(deviceId: string, variable: string, value: string): void {
         if (this._connected && this.socket) {
             this.sendMessage('SET-VARIABLE-VALUE', null, deviceId, {
