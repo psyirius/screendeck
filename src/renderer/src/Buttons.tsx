@@ -826,6 +826,7 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
     // Global configuration constants
     const ENCODER_HOLD_DELAY_MS = 250 // Time before encoder press registers as "hold"
     const ENCODER_INVERT_SCROLL = true // Set true to flip scroll wheel direction
+    const DISABLE_RENDER_CACHE = true // Set true to bypass render cache dirty checking
 
     if (!DEVICE_ID) {
         console.error('No deviceId in query string')
@@ -2371,8 +2372,8 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
         // Check cache for this key
         let cache = keyRenderCache.get(keyIndex)
 
-        // Skip render if bitmap hasn't changed
-        if (cache && cache.lastBitmapHash === bitmapHash && cache.lastSize === size) {
+        // Skip render if bitmap hasn't changed (unless cache disabled)
+        if (!DISABLE_RENDER_CACHE && cache && cache.lastBitmapHash === bitmapHash && cache.lastSize === size) {
             return // Bitmap unchanged, skip render
         }
 
@@ -2421,10 +2422,9 @@ function _init({ $state, $elements, /*$actions,*/ $callbacks, DEVICE_ID }: _Init
             data[j + 3] = 255          // A
         }
 
-        // Render using requestAnimationFrame for optimal timing
-        requestAnimationFrame(() => {
-            cache!.ctx.putImageData(imageData, 0, 0)
-        })
+        // Render synchronously to avoid race condition
+        // (rAF was causing issues when multiple renders for same key arrived in quick succession)
+        cache.ctx.putImageData(imageData, 0, 0)
 
         // Update cache hash
         cache.lastBitmapHash = bitmapHash
